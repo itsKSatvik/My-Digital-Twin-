@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Default Light Theme */
+  --brand-bg: #F8FAFC;
+  --brand-bg-inner: #F1F5F9;
+  --brand-card: #FFFFFF;
+  --brand-card-light: #F1F5F9;
+  --brand-accent: #2563EB;
+  --brand-purple: #7C3AED;
+  --brand-border: #E2E8F0;
+  --brand-text: #0F172A;
+  --brand-text-muted: #64748B;
+  --brand-text-bright: #0F172A;
+}
+
+:root.dark-theme {
+  /* Dark Theme */
+  --brand-bg: #121626;
+  --brand-bg-inner: #0B1020;
+  --brand-card: #1C2237;
+  --brand-card-light: #1E294B;
+  --brand-accent: #3B82F6;
+  --brand-purple: #8B5CF6;
+  --brand-border: rgba(255, 255, 255, 0.05);
+  --brand-text: #F1F5F9;
+  --brand-text-muted: #94A3B8;
+  --brand-text-bright: #FFFFFF;
+}
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-bg-inner: var(--brand-bg-inner);
+  --color-brand-card: var(--brand-card);
+  --color-brand-card-light: var(--brand-card-light);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-purple: var(--brand-purple);
+  --color-brand-border: var(--brand-border);
+  --color-brand-text: var(--brand-text);
+  --color-brand-text-muted: var(--brand-text-muted);
+  --color-brand-text-bright: var(--brand-text-bright);
+  
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.2), 0 0 10px rgba(139, 92, 246, 0.1);
+  }
+  to {
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4), 0 0 20px rgba(139, 92, 246, 0.2);
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+html:not(.dark-theme) {
+  ::-webkit-scrollbar-track {
+    background: #F8FAFC;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #CBD5E1;
+  }
+}
+
+html.dark-theme {
+  ::-webkit-scrollbar-track {
+    background: #0B1020;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1E294B;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3B82F6;
+  }
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--brand-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-light {
+  background: var(--brand-card-light);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Animate progressive loading */
+@keyframes expandWidth {
+  from { width: 0; }
+}
+
+.animate-expand {
+  animation: expandWidth 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Dynamic CSS rules to support light theme flawlessly without changing every file */
+html:not(.dark-theme) {
+  /* Text Overrides - turn light text into dark text, except when on colored/dark containers */
+  .text-slate-100:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #0F172A !important;
+  }
+  .text-slate-200:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #1E293B !important;
+  }
+  .text-slate-300:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #334155 !important;
+  }
+  .text-slate-400:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #475569 !important;
+  }
+  .text-slate-500:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #64748B !important;
+  }
+  .text-slate-600 {
+    color: #475569 !important;
+  }
+  
+  /* Never override text-white inside colored/dark buttons, badges, user bubbles, or active navigation */
+  .text-white:not([class*="bg-blue"], [class*="bg-emerald"], [class*="bg-red"], [class*="bg-rose"], [class*="bg-purple"], [class*="bg-indigo"], [class*="from-blue"], [class*="from-purple"], [class*="bg-blue"] *, [class*="bg-emerald"] *, [class*="bg-red"] *, [class*="bg-rose"] *, [class*="bg-purple"] *, [class*="bg-indigo"] *, [class*="from-blue"] *, [class*="from-purple"] *) {
+    color: #0F172A !important;
+  }
+  
+  /* High-contrast colors for tags/status badges in light theme */
+  .text-cyan-400 { color: #0E7490 !important; }
+  .text-pink-400 { color: #BE185D !important; }
+  .text-purple-400 { color: #7E22CE !important; }
+  .text-teal-400 { color: #0F766E !important; }
+  .text-amber-400 { color: #B45309 !important; }
+  .text-emerald-400 { color: #047857 !important; }
+  .text-blue-400 { color: #1D4ED8 !important; }
+  .text-rose-400 { color: #BE123C !important; }
+  .text-indigo-400 { color: #4338CA !important; }
+  .text-orange-400 { color: #C2410C !important; }
+
+  /* Keep bright icon colors readable */
+  .text-blue-500 { color: #2563EB !important; }
+  .text-emerald-500 { color: #10B981 !important; }
+  .text-rose-500 { color: #EF4444 !important; }
+
+  /* Border Overrides */
+  .border-white\/5 { border-color: #E2E8F0 !important; }
+  .border-white\/10 { border-color: #CBD5E1 !important; }
+  .border-slate-800\/60 { border-color: #E2E8F0 !important; }
+  .border-slate-800 { border-color: #E2E8F0 !important; }
+  .border-slate-700 { border-color: #CBD5E1 !important; }
+  .border-slate-700\/60 { border-color: #E2E8F0 !important; }
+  
+  /* Input/Card background overrides */
+  .bg-\[\#0B1020\] { background-color: #F8FAFC !important; }
+  .bg-\[\#0B1020\]\/30 { background-color: rgba(241, 245, 249, 0.4) !important; }
+  .bg-\[\#0B1020\]\/40 { background-color: rgba(241, 245, 249, 0.6) !important; }
+  .bg-\[\#0B1020\]\/50 { background-color: rgba(241, 245, 249, 0.7) !important; }
+  .bg-\[\#0B1020\]\/80 { background-color: rgba(248, 250, 252, 0.95) !important; }
+  .bg-\[\#0B1020\]\/95 { background-color: #F8FAFC !important; }
+  
+  /* Card background overrides */
+  .bg-\[\#171F34\] { background-color: #FFFFFF !important; }
+  .bg-\[\#171F34\]\/20 { background-color: #F1F5F9 !important; }
+  .bg-\[\#171F34\]\/30 { background-color: rgba(241, 245, 249, 0.5) !important; }
+  .bg-\[\#171F34\]\/80 { background-color: rgba(255, 255, 255, 0.9) !important; }
+  
+  /* Slate & general dark container overrides */
+  .bg-slate-900 { background-color: #F1F5F9 !important; }
+  .bg-slate-900\/60 { background-color: rgba(241, 245, 249, 0.8) !important; }
+  .bg-slate-900\/40 { background-color: rgba(241, 245, 249, 0.5) !important; }
+  .bg-slate-950 { background-color: #E2E8F0 !important; }
+  .bg-slate-950\/40 { background-color: rgba(226, 232, 240, 0.5) !important; }
+  .bg-slate-800 { background-color: #F1F5F9 !important; }
+  .bg-slate-800\/60 { background-color: rgba(241, 245, 249, 0.8) !important; }
+  .bg-slate-800\/40 { background-color: rgba(241, 245, 249, 0.5) !important; }
+  
+  /* Focus highlight overrides */
+  .bg-\[\#1d263d\] { background-color: #F1F5F9 !important; }
+  .bg-\[\#1d263d\]\/20 { background-color: rgba(241, 245, 249, 0.3) !important; }
+  
+  /* Specific override for App container background gradient */
+  .bg-gradient-to-br.from-\[\#161E33\] {
+    background-image: linear-gradient(to bottom right, #F8FAFC, #F1F5F9, #E2E8F0) !important;
+  }
+  
+  /* Interactive elements */
+  select, input[type="text"], input[type="time"] {
+    color: #1E293B !important;
+    background-color: #FFFFFF !important;
+    border-color: #CBD5E1 !important;
+  }
+  
+  /* Pro plan container gradient in light mode */
+  .bg-gradient-to-br.from-blue-600\/10 {
+    background-image: linear-gradient(to bottom right, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05)) !important;
+    border-color: #E2E8F0 !important;
+  }
+
+  /* Calendar cell hover backgrounds */
+  .hover\:bg-slate-800\/40:hover {
+    background-color: rgba(226, 232, 240, 0.5) !important;
+  }
+
+  /* Custom tooltips */
+  .bg-\[\#171F34\].text-slate-100 {
+    background-color: #1E293B !important;
+    color: #F8FAFC !important;
+  }
+  
+  /* Shadow depth for elements */
+  .border-white\/5, .border-slate-800\/60 {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+  }
+}
+
+/* Force utility classes to bypass light theme overrides when we explicitly want light text in dark/colored blocks */
+.force-text-white {
+  color: #ffffff !important;
+}
+.force-text-slate-300 {
+  color: #cbd5e1 !important;
+}
+.force-text-slate-400 {
+  color: #94a3b8 !important;
+}
+
