@@ -25,7 +25,15 @@ interface EmergencyModeViewProps {
 
 export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeViewProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [sessionDuration, setSessionDuration] = useState(25);
   const [countdown, setCountdown] = useState({ minutes: 25, seconds: 0 });
+  
+  // Sync countdown with custom session duration when paused
+  useEffect(() => {
+    if (!isPlaying) {
+      setCountdown({ minutes: sessionDuration, seconds: 0 });
+    }
+  }, [sessionDuration, isPlaying]);
   
   // Ambient sound configurations
   const [activeSound, setActiveSound] = useState('Deep Alpha Waves');
@@ -73,13 +81,13 @@ export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeView
               }
               return current;
             });
-            return { minutes: 25, seconds: 0 };
+            return { minutes: sessionDuration, seconds: 0 };
           }
         });
       }, 1000);
     }
     return () => clearInterval(timer);
-  }, [isPlaying, setTasks]);
+  }, [isPlaying, setTasks, sessionDuration]);
 
   const handleToggleBlockade = (id: string) => {
     setBlockades(prev => prev.map(b => {
@@ -90,7 +98,7 @@ export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeView
 
   const handleResetTimer = () => {
     setIsPlaying(false);
-    setCountdown({ minutes: 25, seconds: 0 });
+    setCountdown({ minutes: sessionDuration, seconds: 0 });
   };
 
   return (
@@ -100,7 +108,7 @@ export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeView
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.3 }}
       className="space-y-6"
-      id="emergency-mode-container"
+      id="deep-focus-mode-container"
     >
       {/* Warning Crimson Banner */}
       <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 flex items-center justify-between gap-4 animate-pulse-slow">
@@ -109,9 +117,9 @@ export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeView
             <ShieldAlert className="w-5 h-5 text-red-500" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-red-400 font-sans tracking-tight">EMERGENCY PROTOCOL ACTIVE</h3>
+            <h3 className="text-sm font-bold text-red-400 font-sans tracking-tight">DEEP FOCUS PROTOCOL ACTIVE</h3>
             <p className="text-xs text-red-500/80 font-sans mt-0.5">
-              High congestion risk detected. Scope limitations in effect. Work blocks prioritized.
+              High congestion risk detected. Custom deep focus sessions enabled. Work blocks prioritized.
             </p>
           </div>
         </div>
@@ -126,20 +134,79 @@ export default function EmergencyModeView({ tasks, setTasks }: EmergencyModeView
           <div className="w-full">
             <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest font-mono flex items-center justify-center gap-1.5 mb-2">
               <AlertOctagon className="w-4 h-4" />
-              HIGH INTENSITY WORKBLOCK
+              DEEP FOCUS SESSION
             </h2>
             <p className="text-[11px] text-slate-500 font-sans">Slam through congestion windows without excuses.</p>
           </div>
 
           {/* Large Countdown timer */}
-          <div className="my-8">
+          <div className="my-6">
             <span className="text-7xl font-mono font-black text-red-500 tracking-tighter drop-shadow-[0_0_15px_rgba(239,68,68,0.2)]">
               {String(countdown.minutes).padStart(2, '0')}:{String(countdown.seconds).padStart(2, '0')}
             </span>
-            <div className="block mt-4">
+            <div className="block mt-3">
               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider bg-slate-950/40 px-3.5 py-1.5 rounded-full border border-white/5 inline-block font-mono">
                 Focus Blocks Logged: <strong className="text-red-400">{focusLogged}</strong>
               </span>
+            </div>
+          </div>
+
+          {/* Flexible Timer Adjustment Panel */}
+          <div className="w-full mb-6 px-1 space-y-3">
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-slate-400 font-medium">Session Duration</span>
+              <span className="text-red-400 font-bold font-mono">{sessionDuration} min</span>
+            </div>
+            
+            <input
+              type="range"
+              min="5"
+              max="120"
+              step="5"
+              value={sessionDuration}
+              onChange={(e) => setSessionDuration(Number(e.target.value))}
+              disabled={isPlaying}
+              className={`w-full accent-red-500 bg-slate-950 rounded-lg cursor-pointer h-1.5 ${
+                isPlaying ? 'opacity-35 cursor-not-allowed' : 'hover:accent-red-400'
+              }`}
+            />
+            {isPlaying && (
+              <p className="text-[9px] text-slate-500 italic mt-0.5">Pause session to adjust duration</p>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-1 pt-1">
+              <button
+                disabled={isPlaying || sessionDuration <= 5}
+                onClick={() => setSessionDuration(prev => Math.max(5, prev - 5))}
+                className="px-2 py-1 text-[10px] font-bold bg-slate-950 hover:bg-slate-900 border border-white/5 text-slate-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="Decrease 5 minutes"
+              >
+                -5m
+              </button>
+              
+              {[15, 25, 45, 60, 90].map((preset) => (
+                <button
+                  key={preset}
+                  disabled={isPlaying}
+                  onClick={() => setSessionDuration(preset)}
+                  className={`px-2 py-1 text-[10px] font-mono rounded-lg border transition-all cursor-pointer ${
+                    sessionDuration === preset
+                      ? 'bg-red-500/15 border-red-500/40 text-red-400 font-bold'
+                      : 'bg-[#0B1020]/40 border-transparent text-slate-400 hover:border-white/5 hover:text-slate-200'
+                  } disabled:opacity-30 disabled:cursor-not-allowed`}
+                >
+                  {preset}m
+                </button>
+              ))}
+
+              <button
+                disabled={isPlaying || sessionDuration >= 120}
+                onClick={() => setSessionDuration(prev => Math.min(120, prev + 5))}
+                className="px-2 py-1 text-[10px] font-bold bg-slate-950 hover:bg-slate-900 border border-white/5 text-slate-300 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                title="Increase 5 minutes"
+              >
+                +5m
+              </button>
             </div>
           </div>
 

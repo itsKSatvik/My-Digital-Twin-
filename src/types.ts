@@ -19,6 +19,12 @@ export interface RiskAnalysis {
   suggestions: string[];
   explanation: string;
   source?: string;
+  todayPriorities?: string[];
+  predictedCompletionTimes?: string;
+  suggestedScheduleChanges?: string[];
+  productivitySummary?: string;
+  digitalTwinStatement?: string;
+  tasksWithRisk?: { id: string; riskLevel: 'low' | 'medium' | 'high'; explanation: string }[];
 }
 
 export interface ScheduleEvent {

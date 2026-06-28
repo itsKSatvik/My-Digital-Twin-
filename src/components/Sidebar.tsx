@@ -68,7 +68,7 @@ export default function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'planner', label: 'AI Planner', icon: Brain, badge: 'New' },
     { id: 'doctor', label: 'AI Doctor', icon: Activity, badge: 'Fixes' },
-    { id: 'emergency', label: 'Emergency Mode', icon: Zap, highlight: true },
+    { id: 'emergency', label: 'Deep Focus Mode', icon: Zap, highlight: true },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 

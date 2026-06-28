@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
-import { Task, RiskAnalysis, ChatMessage } from "./src/types";
+import { Task, RiskAnalysis, ChatMessage, ScheduleEvent } from "./src/types";
 
 // Load environment variables
 dotenv.config();
@@ -46,6 +46,12 @@ function getLocalRecommendations(tasks: Task[]): RiskAnalysis {
         "Set up study or work categories for smart sorting.",
       ],
       explanation: "No tasks found. Your schedule is completely clear!",
+      todayPriorities: [],
+      predictedCompletionTimes: "N/A",
+      suggestedScheduleChanges: [],
+      productivitySummary: "Your schedule is currently clear. Add some objectives to begin.",
+      digitalTwinStatement: "Hello! I'm your Digital Twin. I have analyzed your system profile. Everything looks completely empty—let's design your day together!",
+      tasksWithRisk: []
     };
   }
 
@@ -60,35 +66,55 @@ function getLocalRecommendations(tasks: Task[]): RiskAnalysis {
         "Plan your next big goals in the planner.",
       ],
       explanation: "You have completed all of today's tasks. Risk is extremely low.",
+      todayPriorities: [],
+      predictedCompletionTimes: "Completed",
+      suggestedScheduleChanges: [],
+      productivitySummary: "Incredible efficiency! All logged objectives are complete. You are fully optimized.",
+      digitalTwinStatement: "Brilliant performance today! You finished all objectives ahead of schedule. Take some time to decompress.",
+      tasksWithRisk: tasks.map(t => ({ id: t.id, riskLevel: "low", explanation: "Task completed." }))
     };
   }
 
   const likelyToMiss: string[] = [];
   let totalIncompleteTasks = 0;
   let totalRiskPoints = 0;
+  const tasksWithRisk: { id: string; riskLevel: 'low' | 'medium' | 'high'; explanation: string }[] = [];
 
   activeTasks.forEach((task) => {
     totalIncompleteTasks++;
     const workRemaining = task.hoursNeeded - task.hoursCompleted;
+    let riskLevel: 'low' | 'medium' | 'high' = 'low';
+    let explanation = 'On track.';
     
     if (workRemaining > task.deadlineHours) {
       // Physically impossible to finish on time
       likelyToMiss.push(task.title);
       totalRiskPoints += 100;
+      riskLevel = 'high';
+      explanation = `Required work (${workRemaining}h) exceeds timeline buffer (${task.deadlineHours.toFixed(1)}h).`;
     } else if (task.deadlineHours <= 0) {
       likelyToMiss.push(task.title);
       totalRiskPoints += 100;
+      riskLevel = 'high';
+      explanation = 'Deadline has already passed.';
     } else {
       const loadRatio = workRemaining / task.deadlineHours;
       if (loadRatio > 0.8) {
         likelyToMiss.push(task.title);
         totalRiskPoints += 85;
+        riskLevel = 'high';
+        explanation = `Tight buffer: required work (${workRemaining}h) takes ${Math.round(loadRatio * 100)}% of remaining buffer.`;
       } else if (loadRatio > 0.5) {
         totalRiskPoints += 50;
+        riskLevel = 'medium';
+        explanation = `Moderate risk: workload takes ${Math.round(loadRatio * 100)}% of remaining timeline.`;
       } else {
         totalRiskPoints += 15;
+        riskLevel = 'low';
+        explanation = `Timeline is comfortable with ${task.deadlineHours.toFixed(1)} hours remaining.`;
       }
     }
+    tasksWithRisk.push({ id: task.id, riskLevel, explanation });
   });
 
   const rawScore = Math.round(totalRiskPoints / totalIncompleteTasks);
@@ -117,6 +143,33 @@ function getLocalRecommendations(tasks: Task[]): RiskAnalysis {
 
   suggestions.push("Ensure you sleep before 11 PM to sustain long-term cognitive stamina.");
 
+  // Today priorities
+  const todayPriorities = sortedTasks.map(t => t.title);
+
+  // Predicted completion times
+  const totalHoursRemaining = activeTasks.reduce((acc, t) => acc + (t.hoursNeeded - t.hoursCompleted), 0);
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + Math.round(totalHoursRemaining * 60 * 1.25)); // 25% overhead buffer for breaks
+  const predictedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  // Suggested schedule changes
+  const suggestedScheduleChanges = [
+    `Postpone Leisure block to clear a deep-focus sprint for ${sortedTasks[0]?.title || 'objectives'}.`,
+    "Reschedule Workout session downstream to protect active memory states.",
+    "Engage full-scale digital distraction blockade on browser tabs."
+  ];
+
+  // Productivity summary
+  const productivitySummary = `You have ${activeTasks.length} active objectives requiring ${totalHoursRemaining.toFixed(1)} hours of total focused load. Your schedule congestion is ${riskScore > 75 ? 'highly saturated' : riskScore > 40 ? 'moderately balanced' : 'perfectly spaced'}. Core attention is prioritized on ${sortedTasks[0]?.title || 'major objectives'}.`;
+
+  // Digital Twin Statement
+  let digitalTwinStatement = "";
+  if (riskScore > 75) {
+    digitalTwinStatement = `I noticed today's plan is unrealistic. Your active workload is highly congested. I moved Gym to tomorrow because your ${sortedTasks[0]?.title || 'assignment'} has higher priority. You are currently behind schedule, but this adjustment keeps you in the clear.`;
+  } else {
+    digitalTwinStatement = `Your schedule looks fully in sync with your capacity today. I predict you will complete your objectives around ${predictedTime}. Focus is locked; avoid social media and let's get to work!`;
+  }
+
   return {
     riskScore,
     likelyToMiss,
@@ -124,6 +177,12 @@ function getLocalRecommendations(tasks: Task[]): RiskAnalysis {
     explanation: likelyToMiss.length > 0 
       ? `High-risk schedule detected. You are likely to miss deadline for: ${likelyToMiss.join(", ")}.`
       : "You have a manageable load, but stay focused to prevent scope creep.",
+    todayPriorities,
+    predictedCompletionTimes: predictedTime,
+    suggestedScheduleChanges,
+    productivitySummary,
+    digitalTwinStatement,
+    tasksWithRisk
   };
 }
 
@@ -188,10 +247,10 @@ app.post("/api/recommendations", async (req, res) => {
       model: "gemini-3.5-flash",
       contents: `Analyze these tasks and deadlines for risk of missing them: ${JSON.stringify(
         tasks
-      )}. Current local time is ${new Date().toISOString()}. Provide a realistic risk assessment.`,
+      )}. Current local time is ${new Date().toISOString()}. Provide a realistic risk assessment and proactive day planning metadata.`,
       config: {
         systemInstruction:
-          "You are an expert SaaS productivity planner. Calculate a real risk score (0-100) based on how much work is remaining vs the deadline. List any tasks that are likely to be missed, and give exactly 3 short, punchy, highly actionable suggestions to minimize risk. Be concise and practical.",
+          "You are the user's ultimate Digital Twin. Calculate a real risk score (0-100) based on how much work is remaining vs the deadline. List any tasks that are likely to be missed, and give exactly 3 short, punchy, highly actionable suggestions to minimize risk. Also, identify Today's Priorities (list of task titles sorted by priority), Predicted Completion Time (e.g. '8:30 PM' or '10:15 PM' based on local time and total hours), Suggested Schedule Changes (e.g. 'Postpone Gym to Sunday', 'Cancel Leisure block'), a concise Productivity Summary paragraph, a first-person Twin Statement expressing advice with personality (e.g. 'I noticed today's plan is unrealistic. You usually lose focus after 4 PM, so I suggest...'), and calculate individual risk level (LOW, MEDIUM, or HIGH) and brief explanation for each and every task.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -217,8 +276,43 @@ app.post("/api/recommendations", async (req, res) => {
               type: Type.STRING,
               description: "A very brief 1-2 sentence explanation of the risk assessment.",
             },
+            todayPriorities: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "The list of task titles prioritized for today."
+            },
+            predictedCompletionTimes: {
+              type: Type.STRING,
+              description: "Predicted completion time, e.g. '9:30 PM'."
+            },
+            suggestedScheduleChanges: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "List of specific schedule routine optimizations."
+            },
+            productivitySummary: {
+              type: Type.STRING,
+              description: "A summary paragraph analyzing workload, stress levels, and buffer status."
+            },
+            digitalTwinStatement: {
+              type: Type.STRING,
+              description: "A direct, first-person coaching advice quote from the Twin with distinct, intelligent personality (e.g., 'I analyzed your day. I suggest postponing Workout...')."
+            },
+            tasksWithRisk: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  riskLevel: { type: Type.STRING, description: "LOW, MEDIUM, or HIGH" },
+                  explanation: { type: Type.STRING }
+                },
+                required: ["id", "riskLevel", "explanation"]
+              },
+              description: "Analysis of each individual task in the input array."
+            }
           },
-          required: ["riskScore", "likelyToMiss", "suggestions", "explanation"],
+          required: ["riskScore", "likelyToMiss", "suggestions", "explanation", "todayPriorities", "predictedCompletionTimes", "suggestedScheduleChanges", "productivitySummary", "digitalTwinStatement", "tasksWithRisk"],
         },
       },
     });
@@ -501,6 +595,342 @@ app.post("/api/workspace/tasks/create", async (req, res) => {
   } catch (error: any) {
     console.error("Create Task Error:", error);
     return res.status(500).json({ error: error.message });
+  }
+});
+
+// Helper: Local dynamic plan step generator
+function getLocalPlanSteps(tasks: Task[], risk: RiskAnalysis): any[] {
+  const activeTasks = tasks.filter(t => t.status !== "completed");
+  const highestUrgency = activeTasks.sort((a, b) => {
+    const aRem = a.hoursNeeded - a.hoursCompleted;
+    const bRem = b.hoursNeeded - b.hoursCompleted;
+    const aRatio = a.deadlineHours > 0 ? (aRem / a.deadlineHours) : 10;
+    const bRatio = b.deadlineHours > 0 ? (bRem / b.deadlineHours) : 10;
+    return bRatio - aRatio;
+  })[0];
+
+  const slipTaskTitle = highestUrgency ? highestUrgency.title : (risk.likelyToMiss?.[0] || "Assignment");
+
+  return [
+    {
+      title: `Focus Sprint: Complete ${slipTaskTitle}`,
+      desc: `Dedicate a highly-focused 90-minute Pomodoro block to **${slipTaskTitle}**. Eliminate background tabs, mute social apps, and secure high-productivity execution.`,
+      time: "First 2 Hours",
+      urgency: "CRITICAL",
+      priority: "CRITICAL",
+      duration: "90 minutes",
+      reason: "This task has the highest timeline congestion risk. A focused sprint now prevents a downstream deadline breach.",
+      expectedFinishTime: "2:30 PM",
+      dependencies: ["Silence phone notifications"],
+      confidence: 90
+    },
+    {
+      title: "Reschedule Secondary Chores",
+      desc: `Postpone low impact admin chores or personal leisure to later this evening. Preserve your active mind for your ${activeTasks.length || 3} pending objectives.`,
+      time: "Midday Adjustment",
+      urgency: "MEDIUM",
+      priority: "Medium",
+      duration: "30 minutes",
+      reason: "Secondary administrative work drains mental reserve. Moving this clears a 2-hour distraction-free work block.",
+      expectedFinishTime: "4:00 PM",
+      dependencies: ["Identify secondary chores"],
+      confidence: 95
+    },
+    {
+      title: "Cognitive Recovery Decompression",
+      desc: "Practice 4-7-8 breathing mechanics. Disconnect from screens during rest buffers to lower visual exhaustion and reset focus thresholds.",
+      time: "Between Tasks",
+      urgency: "LOW",
+      priority: "Low",
+      duration: "15 minutes",
+      reason: "Restoring neural dopamine balance prevents visual burnout and preserves cognitive stamina for evening sprints.",
+      expectedFinishTime: "4:15 PM",
+      dependencies: [],
+      confidence: 99
+    }
+  ];
+}
+
+// Helper: Local Emergency Survival Planner
+function getLocalSurvivalPlan(tasks: Task[]): any {
+  const activeTasks = tasks.filter(t => t.status !== "completed");
+  
+  // Reorder tasks: high priority first
+  const sorted = [...tasks].sort((a, b) => {
+    if (a.status === 'completed' && b.status !== 'completed') return 1;
+    if (b.status === 'completed' && a.status !== 'completed') return -1;
+    const pA = a.priority === 'high' ? 3 : a.priority === 'medium' ? 2 : 1;
+    const pB = b.priority === 'high' ? 3 : b.priority === 'medium' ? 2 : 1;
+    return pB - pA;
+  });
+
+  const skipRecommendations = [
+    "Postpone personal reading and non-essential leisure.",
+    "Skip administrative meetings or reschedule non-critical syncing.",
+    "Defer routine gym workout block to Sunday to protect deep focus states."
+  ];
+
+  const survivalPlan = `### 🚨 DIGITAL TWIN EMERGENCY SURVIVAL PROTOCOL
+
+I detected severe timeline congestion. Your schedule has **${activeTasks.length} active tasks** needing **${activeTasks.reduce((acc, t) => acc + (t.hoursNeeded - t.hoursCompleted), 0)} hours** of total work.
+
+Here is your tactical, high-intensity survival protocol to secure your critical deadlines today:
+
+1. **Lock Down Priorities**: Focus exclusively on **${sorted[0]?.title || 'Critical Objectives'}**. All secondary work has been automatically marked as 'deferred' or moved downstream.
+2. **Brutal Cut-down**: Stop all multitasking. We recommend skipping optional activities like routine meetings or leisure today.
+3. **90-Minute Sprint Blocks**: Initiate the Pomodoro protocol with full-scale website blockade. Zero tab hopping.
+4. **Cognitive Sleep Shield**: Wrap up focus blocks by 10:30 PM. Forcing work past midnight triggers severe focus degradation tomorrow.`;
+
+  return {
+    reorderedTasks: sorted,
+    skipRecommendations,
+    survivalPlan
+  };
+}
+
+// API: Generate Dynamic Planner Steps
+app.post("/api/planner/generate", async (req, res) => {
+  try {
+    const { tasks, risk } = req.body;
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      const steps = getLocalPlanSteps(tasks || [], risk || {});
+      return res.json({ steps, source: "local" });
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `Generate a step-by-step personalized schedule priority plan based on these tasks: ${JSON.stringify(
+        tasks
+      )} and this risk assessment: ${JSON.stringify(risk)}. Output exactly 3 sequential action steps in the requested JSON structure.`,
+      config: {
+        systemInstruction:
+          "You are the user's ultimate Digital Twin. Create 3 highly customized steps to help the user clear their bottleneck tasks. Be concrete: mention actual task names, exact timings, and precise focus tactics. For each step, include fields for priority (Low, Medium, High, Critical), duration (e.g. '90 mins'), reason why this step is critical, expectedFinishTime (e.g. '4:30 PM'), dependencies (e.g. ['Clear workspace']), and confidence (0-100 percentage meeting this target).",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            steps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  desc: { type: Type.STRING },
+                  time: { type: Type.STRING },
+                  urgency: { type: Type.STRING, description: "CRITICAL, MEDIUM, or LOW" },
+                  priority: { type: Type.STRING, description: "Low, Medium, High, Critical" },
+                  duration: { type: Type.STRING },
+                  reason: { type: Type.STRING },
+                  expectedFinishTime: { type: Type.STRING },
+                  dependencies: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  confidence: { type: Type.INTEGER }
+                },
+                required: ["title", "desc", "time", "urgency", "priority", "duration", "reason", "expectedFinishTime", "dependencies", "confidence"]
+              }
+            }
+          },
+          required: ["steps"]
+        }
+      }
+    });
+
+    if (response.text) {
+      const parsed = JSON.parse(response.text.trim());
+      return res.json({ steps: parsed.steps, source: "gemini" });
+    } else {
+      throw new Error("Empty response from Gemini for planner steps");
+    }
+  } catch (err: any) {
+    console.error("Dynamic Planner Error:", err);
+    const steps = getLocalPlanSteps(req.body.tasks || [], req.body.risk || {});
+    res.json({ steps, source: "local-fallback", error: err.message });
+  }
+});
+
+// API: Proactive Emergency Survival Plan Generator
+app.post("/api/emergency/survival", async (req, res) => {
+  try {
+    const { tasks } = req.body;
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      const plan = getLocalSurvivalPlan(tasks || []);
+      return res.json({ ...plan, source: "local" });
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `A crisis has been triggered! Generate an emergency survival plan and task prioritization for these tasks: ${JSON.stringify(
+        tasks
+      )}. Reorder tasks, identify specific optional activities to skip today, and produce a survival plan in rich Markdown format.`,
+      config: {
+        systemInstruction:
+          "You are the user's high-performance Digital Twin. Reorder the user's tasks array to prioritize high-priority, high-load work first, and defer or recommend pausing low-priority work. Recommend exactly 3 specific non-essential activities/events to skip or postpone (e.g., 'Reschedule social coffee', 'Postpone laundry chores'). Write a direct, brutally honest emergency survival plan in rich Markdown format with clean bullet points and numbered protocols. Be specific to their actual tasks.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            reorderedTasks: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  hoursCompleted: { type: Type.NUMBER },
+                  hoursNeeded: { type: Type.NUMBER },
+                  deadlineHours: { type: Type.NUMBER },
+                  category: { type: Type.STRING },
+                  status: { type: Type.STRING },
+                  priority: { type: Type.STRING }
+                },
+                required: ["id", "title", "status", "priority"]
+              }
+            },
+            skipRecommendations: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "Exactly 3 clear recommendations of non-essential activities to skip or postpone today."
+            },
+            survivalPlan: {
+              type: Type.STRING,
+              description: "A comprehensive, high-intensity emergency survival plan in rich Markdown."
+            }
+          },
+          required: ["reorderedTasks", "skipRecommendations", "survivalPlan"]
+        }
+      }
+    });
+
+    if (response.text) {
+      const parsed = JSON.parse(response.text.trim());
+      return res.json({ ...parsed, source: "gemini" });
+    } else {
+      throw new Error("Empty response from Gemini for emergency survival");
+    }
+  } catch (err: any) {
+    console.error("Emergency Survival Plan Error:", err);
+    const plan = getLocalSurvivalPlan(req.body.tasks || []);
+    res.json({ ...plan, source: "local-fallback", error: err.message });
+  }
+});
+
+// Helper: Local high-fidelity schedule reorganization logic
+function getLocalReorganizedSchedule(tasks: Task[], scheduleEvents: ScheduleEvent[]): any {
+  const activeTasks = tasks.filter(t => t.status !== "completed");
+  const urgentTask = activeTasks.sort((a, b) => {
+    if (a.priority === "high" && b.priority !== "high") return -1;
+    if (b.priority === "high" && a.priority !== "high") return 1;
+    return (b.hoursNeeded - b.hoursCompleted) - (a.hoursNeeded - a.hoursCompleted);
+  })[0];
+  const urgentTitle = urgentTask ? urgentTask.title : "Urgent Objectives";
+
+  const hasLeisureOrWorkout = scheduleEvents.some(e => e.category === 'Leisure' || e.category === 'Workout');
+  let reorganizedEvents = [...scheduleEvents];
+  let explanation = "";
+  let affectedTasks = urgentTask ? [urgentTask.title] : ["Commitments"];
+
+  if (hasLeisureOrWorkout) {
+    reorganizedEvents = scheduleEvents.map(e => {
+      if (e.category === 'Leisure') {
+        return {
+          ...e,
+          title: `Deep Work Focus: ${urgentTitle}`,
+          category: 'Study' as any
+        };
+      }
+      if (e.category === 'Workout') {
+        return {
+          ...e,
+          startTime: "19:30",
+          endTime: "20:30",
+          title: "Abbreviated Athletic Training (Deferred)"
+        };
+      }
+      return e;
+    });
+    explanation = `My scheduler intervened! I noticed **${urgentTitle}** has narrow safety windows today. I restructured your leisure block into an active focus window, and delayed your workout session to 19:30. This secures your critical deadlines while maintaining baseline routines.`;
+  } else {
+    const overrideId = `twin_override_${Date.now()}`;
+    const newBlock: ScheduleEvent = {
+      id: overrideId,
+      title: `⚡ Twin Override Focus: ${urgentTitle}`,
+      startTime: "11:00",
+      endTime: "13:00",
+      category: "Study",
+      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    };
+    reorganizedEvents = [newBlock, ...scheduleEvents];
+    explanation = `Schedule optimized. I inserted a dedicated 2-hour 'Twin Override Focus Block' at 11:00 to guarantee that **${urgentTitle}** completes well ahead of its deadline. Regular calendar elements have been adjusted downstream.`;
+  }
+
+  return {
+    reorganizedEvents,
+    explanation,
+    affectedTasks
+  };
+}
+
+// API: Digital Twin Schedule Reorganization (Automatic Slippage Control)
+app.post("/api/digitaltwin/reorganize", async (req, res) => {
+  try {
+    const { tasks, scheduleEvents } = req.body;
+    const ai = getGeminiClient();
+
+    if (!ai) {
+      const result = getLocalReorganizedSchedule(tasks || [], scheduleEvents || []);
+      return res.json({ ...result, source: "local" });
+    }
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: `A task has slipped or deadlines are extremely tight! Analyze these tasks: ${JSON.stringify(
+        tasks
+      )} and this current schedule routine: ${JSON.stringify(
+        scheduleEvents
+      )}. Reorganize the schedule to create deep focus blocks for slippage tasks and postpone or scale down non-urgent items. Return the updated schedule, a clear twin-like reasoning explanation, and the list of affected tasks.`,
+      config: {
+        systemInstruction:
+          "You are the user's ultimate Digital Twin. Act as a proactive scheduler. Analyze which tasks are slipping (where hoursNeeded - hoursCompleted > deadlineHours, or priority is high and deadline is close). If a task is slipping, modify the scheduleEvents array: postpone or adjust non-critical classes/workouts/leisure blocks to introduce 1.5 - 2.5 hour 'Deep Work Focus Block: [Task Name]' periods. Explain exactly why you rescheduled those specific events and how it secures their deadlines.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            reorganizedEvents: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  title: { type: Type.STRING },
+                  startTime: { type: Type.STRING },
+                  endTime: { type: Type.STRING },
+                  category: { type: Type.STRING, description: "Class, Workout, Meal, Study, Leisure, or Other" },
+                  days: { type: Type.ARRAY, items: { type: Type.STRING } }
+                },
+                required: ["id", "title", "startTime", "endTime", "category"]
+              }
+            },
+            explanation: { type: Type.STRING, description: "A detailed explanation of the schedule modifications and the twin's cognitive reasoning." },
+            affectedTasks: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Titles of tasks that are saved or affected by this reorganization." }
+          },
+          required: ["reorganizedEvents", "explanation", "affectedTasks"]
+        }
+      }
+    });
+
+    if (response.text) {
+      const parsed = JSON.parse(response.text.trim());
+      return res.json({ ...parsed, source: "gemini" });
+    } else {
+      throw new Error("Empty response from Gemini for reorganization");
+    }
+  } catch (err: any) {
+    console.error("Twin Reorganize Error:", err);
+    const result = getLocalReorganizedSchedule(req.body.tasks || [], req.body.scheduleEvents || []);
+    res.json({ ...result, source: "local-fallback", error: err.message });
   }
 });
 
