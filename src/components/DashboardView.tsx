@@ -313,15 +313,7 @@ export default function DashboardView({
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <button
-            id="generate-plan-cta"
-            onClick={refreshRisk}
-            disabled={isLoadingRisk}
-            className="text-sm px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold transition-all duration-300 flex items-center gap-2 cursor-pointer shadow-[0_4px_15px_rgba(37,99,235,0.25)] hover:shadow-[0_4px_22px_rgba(139,92,246,0.45)] hover:scale-[1.02] active:scale-[0.98] shrink-0 border border-white/10"
-          >
-            <Sparkles className="w-4 h-4 text-blue-200 animate-pulse" />
-            <span>{isLoadingRisk ? "Generating Plan..." : "Generate Today's AI Plan"}</span>
-          </button>
+
           
           <div className="text-right hidden sm:block">
             <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold font-mono">{tzLabel} TIME</p>
