@@ -44,6 +44,7 @@ export function useAppState() {
     tasksWithRisk: []
   });
   const [isLoadingRisk, setIsLoadingRisk] = useState(false);
+  const lastRiskFetchTimeRef = useRef<number>(0);
 
   const [planSteps, setPlanStepsState] = useState<PlanStep[]>(() => {
     const saved = storageService.getPlanSteps();
@@ -264,7 +265,73 @@ export function useAppState() {
   const refreshRisk = useCallback(async () => {
     setIsLoadingRisk(true);
     try {
+      const nowMs = Date.now();
+      // Only hit the actual API if 30 seconds have passed since the last fetch.
+      // Otherwise, calculate the local fallback to keep the app snappy and respect quotas!
+      if (nowMs - lastRiskFetchTimeRef.current < 30000) {
+        // Run heuristic fallback calculation immediately
+        const active = tasks.filter(t => t.status !== 'completed');
+        if (active.length === 0) {
+          setRisk({
+            riskScore: 5,
+            likelyToMiss: [],
+            suggestions: ['Perfect alignment! All tasks finished.'],
+            explanation: 'All objectives logged today have been completed successfully.',
+            todayPriorities: [],
+            predictedCompletionTimes: 'Completed',
+            suggestedScheduleChanges: [],
+            productivitySummary: 'All tasks completed successfully.',
+            digitalTwinStatement: 'Excellent work today! Your slate is completely clean. Rest and recover.',
+            tasksWithRisk: [],
+            source: 'local-throttled'
+          });
+        } else {
+          const slip = active.filter(t => (t.hoursNeeded - t.hoursCompleted) > t.deadlineHours).map(t => t.title);
+          
+          // Build heuristic values
+          const totalWork = active.reduce((acc, t) => acc + (t.hoursNeeded - t.hoursCompleted), 0);
+          const now = new Date();
+          now.setMinutes(now.getMinutes() + Math.round(totalWork * 60 * 1.25));
+          const predictedTime = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+          setRisk({
+            riskScore: slip.length > 0 ? 88 : 42,
+            likelyToMiss: slip,
+            suggestions: slip.length > 0
+              ? [`Start ${slip[0]} immediately. Remaining work exceeds deadline.`, 'Mute notification hubs', 'Adjust calendar routine']
+              : ['Consolidate meetings', 'Secure 90-minute study blocks', 'Sleep on time'],
+            explanation: slip.length > 0
+              ? `Your schedule is congested. Tight constraints detected on: ${slip.join(', ')}.`
+              : 'Workload is dense but manageable. Stay disciplined to prevent bottlenecks.',
+            todayPriorities: active.map(t => t.title),
+            predictedCompletionTimes: predictedTime,
+            suggestedScheduleChanges: [
+              `Postpone Leisure block to clear a deep-focus sprint for ${active[0]?.title || 'objectives'}.`,
+              'Reschedule Workout session downstream.'
+            ],
+            productivitySummary: `You have ${active.length} active objectives requiring ${totalWork.toFixed(1)} hours of workload.`,
+            digitalTwinStatement: slip.length > 0
+              ? `I noticed today's plan is unrealistic. Your active load is too heavy. I suggests moving Gym or leisure blocks downstream to create a dedicated deep-focus protocol for ${active[0]?.title}.`
+              : `Your schedule is completely in sync with your capacity today. I predict you will complete your objectives around ${predictedTime}.`,
+            tasksWithRisk: tasks.map(t => {
+              const rem = t.hoursNeeded - t.hoursCompleted;
+              const level = rem > t.deadlineHours ? 'high' : rem / t.deadlineHours > 0.5 ? 'medium' : 'low';
+              return {
+                id: t.id,
+                riskLevel: level as any,
+                explanation: rem > t.deadlineHours 
+                  ? 'Time needed exceeds deadline buffer.' 
+                  : 'Manageable buffer.'
+              };
+            }),
+            source: 'local-throttled'
+          });
+        }
+        return;
+      }
+
       const res = await aiService.getRiskAnalysis(tasks);
+      lastRiskFetchTimeRef.current = Date.now(); // Update timestamp only on successful API fetch
       setRisk({
         riskScore: res.riskScore,
         likelyToMiss: res.likelyToMiss,
@@ -293,11 +360,11 @@ export function useAppState() {
           suggestedScheduleChanges: [],
           productivitySummary: 'All tasks completed successfully.',
           digitalTwinStatement: 'Excellent work today! Your slate is completely clean. Rest and recover.',
-          tasksWithRisk: []
+          tasksWithRisk: [],
+          source: 'local-fallback'
         });
       } else {
         const slip = active.filter(t => (t.hoursNeeded - t.hoursCompleted) > t.deadlineHours).map(t => t.title);
-        const slipTasks = active.filter(t => (t.hoursNeeded - t.hoursCompleted) > t.deadlineHours);
         
         // Build heuristic values
         const totalWork = active.reduce((acc, t) => acc + (t.hoursNeeded - t.hoursCompleted), 0);
@@ -334,7 +401,8 @@ export function useAppState() {
                 ? 'Time needed exceeds deadline buffer.' 
                 : 'Manageable buffer.'
             };
-          })
+          }),
+          source: 'local-fallback'
         });
       }
     } finally {
@@ -389,10 +457,15 @@ export function useAppState() {
     }
   }, [tasks, activeFocusTaskId]);
 
+  const refreshRiskRef = useRef(refreshRisk);
+  useEffect(() => {
+    refreshRiskRef.current = refreshRisk;
+  }, [refreshRisk]);
+
   // Proactive automatic refresh of risk analysis when tasks change
   useEffect(() => {
-    refreshRisk();
-  }, [tasks.length, tasks.map(t => t.status).join(','), refreshRisk]);
+    refreshRiskRef.current();
+  }, [tasks.length, tasks.map(t => t.status).join(',')]);
 
   // Handle active countdown / ticking logic inside the hooks
   useEffect(() => {

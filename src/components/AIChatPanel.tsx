@@ -97,9 +97,7 @@ Ask me any questions about priority optimization, what items are safe to postpon
   return (
     <div 
       id="ai-chat-panel-container"
-      className={`h-screen flex flex-col border-l border-white/5 bg-[#0B1020] transition-all duration-300 relative z-20 shrink-0 ${
-        isOpen ? 'w-full lg:w-96 xl:w-[400px]' : 'w-0 overflow-hidden border-l-0'
-      }`}
+      className="h-screen relative z-20 flex shrink-0"
     >
       {/* Tab toggle for desktop sidebar */}
       <button
@@ -110,28 +108,33 @@ Ask me any questions about priority optimization, what items are safe to postpon
         <MessageSquare className="w-5 h-5" />
       </button>
 
-      {/* Header */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
-        <div className="flex items-center gap-2">
-          <AppLogo className="w-8 h-8 shrink-0" />
-          <div>
-            <h2 className="text-sm font-semibold text-slate-100 font-sans flex items-center gap-1.5">
-              AI Priority Guide
-              <span className="flex w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            </h2>
-            <p className="text-[10px] text-slate-400 font-sans">Digital Twin Core v3.5</p>
+      {/* Main sliding panel with overflow-hidden */}
+      <div className={`h-full flex flex-col bg-[#0B1020] transition-all duration-300 overflow-hidden ${
+        isOpen ? 'w-full lg:w-96 xl:w-[400px] border-l border-white/5' : 'w-0'
+      }`}>
+        <div className="w-full h-full flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="h-16 flex items-center justify-between px-4 border-b border-white/5 shrink-0">
+            <div className="flex items-center gap-2">
+              <AppLogo className="w-8 h-8 shrink-0" />
+              <div>
+                <h2 className="text-sm font-semibold text-slate-100 font-sans flex items-center gap-1.5">
+                  AI Priority Guide
+                  <span className="flex w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </h2>
+                <p className="text-[10px] text-slate-400 font-sans">Digital Twin Core v3.5</p>
+              </div>
+            </div>
+            
+            <button
+              id="clear-chat-history"
+              onClick={handleClearHistory}
+              title="Clear History"
+              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
-        </div>
-        
-        <button
-          id="clear-chat-history"
-          onClick={handleClearHistory}
-          title="Clear History"
-          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
 
       {/* Messages */}
       <div className="flex-1 p-4 overflow-y-auto space-y-4">
@@ -221,6 +224,8 @@ Ask me any questions about priority optimization, what items are safe to postpon
             <Send className="w-3.5 h-3.5" />
           </button>
         </form>
+      </div>
+      </div>
       </div>
     </div>
   );
