@@ -11,7 +11,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Activity,
-  Clock
+  Clock,
+  User
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -68,6 +69,7 @@ export default function Sidebar({ activeTab, setActiveTab, isCollapsed, setIsCol
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'planner', label: 'AI Planner', icon: Brain, badge: 'New' },
     { id: 'doctor', label: 'AI Doctor', icon: Activity, badge: 'Fixes' },
+    { id: 'memory', label: 'Twin Memory', icon: User, badge: 'Core' },
     { id: 'emergency', label: 'Deep Focus Mode', icon: Zap, highlight: true },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];

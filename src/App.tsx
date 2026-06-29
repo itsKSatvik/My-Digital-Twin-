@@ -10,6 +10,7 @@ import AIPlannerView from './components/AIPlannerView';
 import AIDoctorView from './components/AIDoctorView';
 import EmergencyModeView from './components/EmergencyModeView';
 import SettingsView from './components/SettingsView';
+import TwinMemoryView from './components/TwinMemoryView';
 import AIChatPanel from './components/AIChatPanel';
 import ProactiveInterruptModal from './components/ProactiveInterruptModal';
 import TwinReorganizeModal from './components/TwinReorganizeModal';
@@ -322,6 +323,14 @@ export default function App() {
                 sleepWokeTime={sleepWokeTime}
                 onLogSleepToday={onLogSleepToday}
                 getTodayDateString={getTodayDateString}
+                timezone={timezone}
+              />
+            )}
+            {activeTab === 'memory' && (
+              <TwinMemoryView 
+                key="memory"
+                tasks={tasks}
+                risk={risk}
                 timezone={timezone}
               />
             )}
