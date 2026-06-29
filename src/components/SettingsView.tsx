@@ -78,7 +78,7 @@ export default function SettingsView({
         <div className="lg:col-span-5 bg-[#171F34] border border-white/5 p-6 rounded-2xl h-fit space-y-5">
           <h2 className="text-sm font-semibold text-white font-sans flex items-center gap-2 pb-2 border-b border-white/5">
             <Cpu className="w-4.5 h-4.5 text-blue-500" />
-            AI Integration Status
+            Twin Consciousness Core
           </h2>
 
           <div className="space-y-3.5">
@@ -250,7 +250,7 @@ export default function SettingsView({
             {/* Dropdown Selection */}
             <div className="flex items-center justify-between p-3.5 bg-[#0B1020]/30 rounded-xl border border-white/5">
               <div>
-                <h4 className="text-xs font-semibold text-slate-200">AI Safety Filters</h4>
+                <h4 className="text-xs font-semibold text-slate-200">Twin Risk Calibration</h4>
                 <p className="text-[10px] text-slate-500 mt-0.5">Set conservative threshold margins for risk scores.</p>
               </div>
               
@@ -292,7 +292,7 @@ export default function SettingsView({
             {/* Lunch Hour Settings */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 bg-[#0B1020]/30 rounded-xl border border-white/5 gap-3">
               <div>
-                <h4 className="text-xs font-semibold text-slate-200">AI Doctor Lunch Interval</h4>
+                <h4 className="text-xs font-semibold text-slate-200">Twin Doctor Lunch Interval</h4>
                 <p className="text-[10px] text-slate-500 mt-0.5">Set daily interval (24h format HH:MM) to track nutritional schedule.</p>
               </div>
               

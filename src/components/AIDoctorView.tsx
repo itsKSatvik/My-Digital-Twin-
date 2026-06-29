@@ -218,10 +218,10 @@ export default function AIDoctorView({
             <span className="p-1.5 bg-rose-500/15 rounded-lg border border-rose-500/30">
               <Activity className="w-7 h-7 text-rose-500 animate-pulse" />
             </span>
-            AI Doctor
+            Twin Doctor
           </h1>
           <p className="text-sm text-slate-400 font-sans mt-1">
-            Analyzing device activity, meal logs, and planning bias to cure chronic time management failures.
+            My diagnostics engine identifying attention leaks, nutrition boundaries, and cognitive fatigue.
           </p>
         </div>
 
@@ -250,7 +250,7 @@ export default function AIDoctorView({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4 mb-5">
               <div>
                 <h3 className="text-sm font-bold text-slate-300 font-sans uppercase tracking-wider">Clinical Pathology Report</h3>
-                <p className="text-[11px] text-slate-500 font-mono">ID: AI-PHYS-X9202</p>
+                <p className="text-[11px] text-slate-500 font-mono">ID: TWIN-PHYS-X9202</p>
               </div>
               <span className={`px-2.5 py-1 text-xs font-bold rounded-lg font-sans border ${statusLabel.color}`}>
                 {statusLabel.text}
@@ -543,7 +543,7 @@ export default function AIDoctorView({
 
                   <div className="mt-4 pt-3.5 border-t border-rose-500/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="text-[10px] text-rose-300 font-mono">
-                      <strong>AI Doctor Advice</strong>: Always pause for meals. A nourished body sustains focus without cognitive decay.
+                      <strong>Twin Doctor Advice</strong>: Always pause for meals. A nourished body sustains focus without cognitive decay.
                     </span>
                     <button
                       onClick={() => {
@@ -576,19 +576,19 @@ export default function AIDoctorView({
                   <div className="space-y-3 mt-3 text-[11px] text-slate-300 font-sans leading-relaxed">
                     {showSleepDeficitAlert && (
                       <p>
-                        ⚠️ <strong className="text-amber-300">Sleep Deprivation Alert ({latestSleepHours}h logged)</strong>: You slept less than the 7-hour clinical threshold. This triggers a 30% drop in cognitive focus and increases the likelihood of afternoon distractions. AI Doctor recommends taking a 15-minute power nap between 1:30 PM and 2:30 PM to offset today's sleep debt.
+                        ⚠️ <strong className="text-amber-300">Sleep Deprivation Alert ({latestSleepHours}h logged)</strong>: You slept less than the 7-hour clinical threshold. This triggers a 30% drop in cognitive focus and increases the likelihood of afternoon distractions. Twin Doctor recommends taking a 15-minute power nap between 1:30 PM and 2:30 PM to offset today's sleep debt.
                       </p>
                     )}
                     {showSleepLateAlert && (
                       <p>
-                        ⏰ <strong className="text-blue-300">Circadian Misalignment Alert (Bedtime: {latestSleep?.sleptAt})</strong>: Your sleep started after midnight. Melatonin and deep-sleep phase cycles are most restorative before 2:00 AM. Sleep delay shifts your productivity curve, leading to post-lunch brain fog. AI Doctor advises locking all screens 30 minutes before bed and using a blue-light filter.
+                        ⏰ <strong className="text-blue-300">Circadian Misalignment Alert (Bedtime: {latestSleep?.sleptAt})</strong>: Your sleep started after midnight. Melatonin and deep-sleep phase cycles are most restorative before 2:00 AM. Sleep delay shifts your productivity curve, leading to post-lunch brain fog. Twin Doctor advises locking all screens 30 minutes before bed and using a blue-light filter.
                       </p>
                     )}
                   </div>
 
                   <div className="mt-4 pt-3.5 border-t border-blue-500/20 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <span className="text-[10px] text-blue-300 font-mono">
-                      <strong>AI Doctor Advice</strong>: Consistent circadian rhythms strengthen willpower and eliminate brain fog.
+                      <strong>Twin Doctor Advice</strong>: Consistent circadian rhythms strengthen willpower and eliminate brain fog.
                     </span>
                     <button
                       onClick={() => {

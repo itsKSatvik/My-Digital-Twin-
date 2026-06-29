@@ -85,10 +85,10 @@ export default function AIChatPanel({ tasks, messages, setMessages }: AIChatPane
       {
         id: 'welcome',
         sender: 'ai',
-        text: `### Welcome back, Planner! 🤖
-I'm your **Digital Twin**. I've loaded your schedule and local parameters. 
+        text: `### Digital Twin Core Synchronized 🧠
+I am your **Digital Twin**, actively observing your schedules, cognitive windows, and completion velocity in real-time.
 
-Ask me any questions about priority optimization, what items are safe to postpone, or click one of the quick actions below to analyze your deadlines.`,
+Ask me to assess your schedule, recommend items to reschedule, or click one of the proactive indicators below to prevent a deadline collision.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ]);
@@ -119,7 +119,7 @@ Ask me any questions about priority optimization, what items are safe to postpon
               <AppLogo className="w-8 h-8 shrink-0" />
               <div>
                 <h2 className="text-sm font-semibold text-slate-100 font-sans flex items-center gap-1.5">
-                  AI Priority Guide
+                  Twin Priority Guide
                   <span className="flex w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 </h2>
                 <p className="text-[10px] text-slate-400 font-sans">Digital Twin Core v3.5</p>
@@ -178,7 +178,7 @@ Ask me any questions about priority optimization, what items are safe to postpon
         {isLoading && (
           <div className="flex items-center gap-2 mr-auto max-w-[80%] bg-[#171F34] border border-white/5 p-3.5 rounded-2xl rounded-tl-none text-xs text-slate-400 italic">
             <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-            <span>AI Advisor compiling priorities...</span>
+            <span>Digital Twin compiling behavioral priorities...</span>
           </div>
         )}
         <div ref={messagesEndRef} />
@@ -213,7 +213,7 @@ Ask me any questions about priority optimization, what items are safe to postpon
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={isLoading}
-            placeholder="Ask AI Advisor about tasks..."
+            placeholder="Investigate schedule constraints with your Twin..."
             className="flex-1 bg-transparent border-0 outline-none focus:ring-0 text-xs text-slate-100 placeholder-slate-500 font-sans px-2.5 h-8"
           />
           <button

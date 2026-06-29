@@ -45,9 +45,9 @@ export default function AIPlannerView({ tasks, risk, planSteps, isLoadingPlan, r
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white font-sans tracking-tight">AI Planner</h1>
+          <h1 className="text-3xl font-extrabold text-white font-sans tracking-tight">Twin Planner</h1>
           <p className="text-sm text-slate-400 font-sans mt-0.5">
-            Smart workload optimization and predictive task orchestration.
+            My automated predictive calendar coordinator and fatigue optimizer.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default function AIPlannerView({ tasks, risk, planSteps, isLoadingPlan, r
           className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4.5 py-2.5 rounded-xl transition-all shadow-lg shadow-blue-500/10 cursor-pointer flex items-center gap-1.5 shrink-0 hover:scale-[1.01] active:scale-[0.99]"
         >
           <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-          {isLoadingPlan ? "Regenerating..." : "Regenerate AI Targets"}
+          {isLoadingPlan ? "Synchronizing Twin..." : "Sync Twin Targets"}
         </button>
       </div>
 
@@ -67,14 +67,14 @@ export default function AIPlannerView({ tasks, risk, planSteps, isLoadingPlan, r
         <div className="lg:col-span-7 bg-[#171F34]/80 border border-white/5 p-6 rounded-2xl shadow-lg">
           <div className="flex items-center gap-2.5 mb-6 pb-3 border-b border-white/5">
             <Brain className="w-4.5 h-4.5 text-purple-400" />
-            <h2 className="text-sm font-semibold text-slate-100 font-sans">Active AI Priority Protocol</h2>
+            <h2 className="text-sm font-semibold text-slate-100 font-sans">Active Twin Priority Protocol</h2>
           </div>
 
           <div className="space-y-3.5">
             {planSteps.length === 0 ? (
               <div className="text-center py-12 bg-[#0B1020]/20 rounded-xl border border-white/5">
                 <Sparkles className="w-8 h-8 text-indigo-400 mx-auto animate-bounce" />
-                <p className="text-xs text-slate-400 mt-3">Click 'Regenerate AI Targets' to formulate a highly optimized step-by-step routing.</p>
+                <p className="text-xs text-slate-400 mt-3">Click 'Sync Twin Targets' to formulate a highly optimized step-by-step routing.</p>
               </div>
             ) : (
               planSteps.map((step, index) => {

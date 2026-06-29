@@ -556,9 +556,9 @@ export default function TasksView({
             {newCategory !== 'Bill Payment' && adviceEstimate !== null && (
               <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-lg text-[11px] text-blue-300 font-sans flex flex-col gap-2 mt-1">
                 <div className="flex items-start gap-1.5">
-                  <span className="text-xs shrink-0">💡</span>
+                  <span className="text-xs shrink-0">🧠</span>
                   <span>
-                    <strong>AI Advice</strong>: Completed <strong>{newCategory}</strong> tasks average <strong>{adviceEstimate} hours</strong>.
+                    <strong>Twin Recommendation</strong>: Based on your historical pattern, your average <strong>{newCategory}</strong> tasks take <strong>{adviceEstimate} hours</strong>.
                   </span>
                 </div>
                 <button

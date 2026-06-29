@@ -259,7 +259,7 @@ export default function CalendarView({
     return null;
   };
 
-  const handleAIOptimize = () => {
+  const handleTwinOptimize = () => {
     setIsOptimizing(true);
     setOptimizationSuccess(false);
     
@@ -304,7 +304,7 @@ export default function CalendarView({
 
         <button
           id="ai-optimize-schedule"
-          onClick={handleAIOptimize}
+          onClick={handleTwinOptimize}
           disabled={isOptimizing}
           className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-all shadow-lg shadow-blue-500/10 cursor-pointer flex items-center gap-1.5 shrink-0"
         >
@@ -330,7 +330,7 @@ export default function CalendarView({
           className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-xl flex items-center gap-2.5 text-xs text-emerald-400"
         >
           <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span><strong>AI De-clashing Completed!</strong> Parallel commitments have been prioritized and flexible work blocks were automatically rescheduled to avoid overlaps.</span>
+          <span><strong>Twin De-clashing Completed!</strong> Parallel commitments have been prioritized and flexible work blocks were automatically rescheduled to avoid overlaps.</span>
         </motion.div>
       )}
 
