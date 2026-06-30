@@ -273,6 +273,7 @@ export default function App() {
                 workspaceTasks={workspaceTasks}
                 isWorkspaceLoading={isWorkspaceLoading}
                 syncWorkspaceData={syncWorkspaceData}
+                risk={risk}
               />
             )}
             {activeTab === 'calendar' && (

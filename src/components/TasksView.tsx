@@ -26,7 +26,15 @@ import {
   Home,
   Target,
   Activity,
-  Layers
+  Layers,
+  MapPin,
+  Users,
+  Wallet,
+  Bell,
+  Sparkles,
+  ArrowRight,
+  Hourglass,
+  Link2
 } from 'lucide-react';
 import { Task, TaskCategory } from '../types';
 import { detectTaskCategory } from '../utils/taskDetector';
@@ -39,6 +47,7 @@ interface TasksViewProps {
   workspaceTasks: any[];
   isWorkspaceLoading: boolean;
   syncWorkspaceData: () => Promise<void>;
+  risk?: any;
 }
 
 export default function TasksView({ 
@@ -48,7 +57,8 @@ export default function TasksView({
   isWorkspaceConnected,
   workspaceTasks,
   isWorkspaceLoading,
-  syncWorkspaceData
+  syncWorkspaceData,
+  risk
 }: TasksViewProps) {
   // Form States
   const [newTitle, setNewTitle] = useState('');
@@ -58,6 +68,14 @@ export default function TasksView({
   const [newPriority, setNewPriority] = useState<Task['priority']>('medium');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [addToGoogleTasks, setAddToGoogleTasks] = useState(false);
+
+  // Interactive Simulation States
+  const [payingTaskId, setPayingTaskId] = useState<string | null>(null);
+  const [preparingTaskId, setPreparingTaskId] = useState<string | null>(null);
+  const [remindedTaskIds, setRemindedTaskIds] = useState<string[]>([]);
+  const [selectedShoppingListTaskId, setSelectedShoppingListTaskId] = useState<string | null>(null);
+  const [showingTipTaskId, setShowingTipTaskId] = useState<string | null>(null);
+  const [activeAppliedAdjustments, setActiveAppliedAdjustments] = useState<string[]>([]);
 
   // Custom metadata states
   // STUDY
@@ -126,6 +144,30 @@ export default function TasksView({
   // Filter States
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
+
+  // Interactive Simulation Handlers
+  const handleSimulatePayment = (taskId: string) => {
+    setPayingTaskId(taskId);
+    setTimeout(() => {
+      setPayingTaskId(null);
+      handleToggleCompleted(taskId);
+    }, 1200);
+  };
+
+  const handleSimulatePrepare = (taskId: string) => {
+    setPreparingTaskId(taskId);
+    setTimeout(() => {
+      setPreparingTaskId(null);
+      setShowingTipTaskId(taskId);
+      setTimeout(() => setShowingTipTaskId(null), 4000);
+    }, 1000);
+  };
+
+  const handleToggleReminder = (taskId: string) => {
+    setRemindedTaskIds(prev => 
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  };
 
   // Helper to reset form metadata
   const resetMetadataForm = () => {
@@ -1389,247 +1431,834 @@ export default function TasksView({
           </div>
 
           {/* List display */}
-          <div className="flex-1 overflow-y-auto max-h-[360px] space-y-2.5 mt-4 pr-1">
+          <div className="flex-1 overflow-y-auto max-h-[700px] space-y-3 mt-4 pr-1 scrollbar-thin scrollbar-thumb-slate-800 scrollbar-track-transparent">
             {filteredTasks.length === 0 ? (
-              <div className="text-center py-10">
-                <FolderMinus className="w-8 h-8 text-slate-600 mx-auto" />
-                <p className="text-xs text-slate-500 font-sans mt-2">No matching entries found.</p>
+              <div className="text-center py-14 bg-[#0B1020]/20 border border-dashed border-white/5 rounded-2xl">
+                <FolderMinus className="w-10 h-10 text-slate-600 mx-auto" />
+                <p className="text-xs text-slate-500 font-sans mt-2">No active tasks found matching this criteria.</p>
               </div>
             ) : (
               filteredTasks.map((taskItem) => {
                 const task = taskItem as any;
+                
+                // Helper to format time relative to deadline date
+                const relativeTime = (() => {
+                  let targetDate: Date;
+                  if (task.deadlineDate) {
+                    targetDate = new Date(task.deadlineDate);
+                  } else if (task.deadlineHours > 0) {
+                    targetDate = new Date();
+                    targetDate.setMinutes(targetDate.getMinutes() + Math.round(task.deadlineHours * 60));
+                  } else {
+                    return 'N/A';
+                  }
+                  const now = new Date();
+                  const diffMs = targetDate.getTime() - now.getTime();
+                  if (diffMs <= 0) return 'Overdue';
+                  
+                  const diffMins = Math.floor(diffMs / 60000);
+                  const hrs = Math.floor(diffMins / 60);
+                  const mins = diffMins % 60;
+                  
+                  if (hrs >= 24) {
+                    const days = Math.floor(hrs / 24);
+                    const remHrs = hrs % 24;
+                    return `${days}d ${remHrs}h`;
+                  }
+                  return `${hrs}h ${mins}m`;
+                })();
+
+                // Helper to render category icon
+                const getCategoryIcon = (cat: string) => {
+                  switch(cat) {
+                    case 'Meeting':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-blue-950/20">
+                          <Users className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Bill Payment':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-amber-950/20">
+                          <Wallet className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Study':
+                    case 'Exam Prep':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-violet-950/20">
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Assignment':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-950/20">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Health & Fitness':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-rose-950/20">
+                          <Dumbbell className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Shopping':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-yellow-950/20">
+                          <ShoppingCart className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Travel':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-cyan-950/20">
+                          <Plane className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Work':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950/20">
+                          <Briefcase className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Household':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-orange-500/10 text-orange-400 border border-orange-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-orange-950/20">
+                          <Home className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Personal Goal':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-fuchsia-500/10 text-fuchsia-400 border border-fuchsia-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-fuchsia-950/20">
+                          <Target className="w-5 h-5" />
+                        </div>
+                      );
+                    case 'Habit':
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center shrink-0 shadow-lg shadow-teal-950/20">
+                          <Activity className="w-5 h-5" />
+                        </div>
+                      );
+                    default:
+                      return (
+                        <div className="w-12 h-12 rounded-xl bg-slate-500/10 text-slate-400 border border-slate-500/20 flex items-center justify-center shrink-0">
+                          <Coffee className="w-5 h-5" />
+                        </div>
+                      );
+                  }
+                };
+
+                // Helper to render category label badge
+                const getCategoryBadge = (cat: string) => {
+                  switch (cat) {
+                    case 'Meeting':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 uppercase border border-blue-500/10">Meeting</span>;
+                    case 'Bill Payment':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 uppercase border border-amber-500/10">Bill Payment</span>;
+                    case 'Study':
+                    case 'Exam Prep':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 uppercase border border-violet-500/10">Study</span>;
+                    case 'Assignment':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 uppercase border border-emerald-500/10">Assignment</span>;
+                    case 'Health & Fitness':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 uppercase border border-rose-500/10">Health</span>;
+                    case 'Shopping':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 uppercase border border-yellow-500/10">Shopping</span>;
+                    case 'Travel':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 uppercase border border-cyan-500/10">Travel</span>;
+                    case 'Work':
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 uppercase border border-indigo-500/10">Work</span>;
+                    default:
+                      return <span className="text-[9px] font-sans font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 uppercase border border-slate-700/50">{cat}</span>;
+                  }
+                };
+
+                const taskRisk = risk?.tasksWithRisk?.find((r: any) => r.id === task.id);
+                const riskLevel = taskRisk?.riskLevel || (task.priority === 'high' ? 'high' : task.priority === 'medium' ? 'medium' : 'low');
+                const riskExplanation = taskRisk?.explanation || '';
+
+                const getRiskBadge = (level: string) => {
+                  if (level === 'high') {
+                    return <span className="text-[9px] font-mono font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/20 uppercase">High Risk</span>;
+                  }
+                  if (level === 'medium') {
+                    return <span className="text-[9px] font-mono font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 uppercase">Medium Risk</span>;
+                  }
+                  return <span className="text-[9px] font-mono font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 uppercase">Low Risk</span>;
+                };
+
+                const getAdvisoryText = () => {
+                  if (riskExplanation) {
+                    return riskExplanation;
+                  }
+                  switch (task.category) {
+                    case 'Bill Payment':
+                      return task.lateFee 
+                        ? `Pay before the due date to avoid late fees of $${task.lateFee}/day.` 
+                        : "Enable auto pay to never miss a due date and protect your credit score.";
+                    case 'Meeting':
+                      return "With upcoming preparations and buffer remaining, schedule is stable. Pre-read agenda items to be aligned.";
+                    case 'Study':
+                    case 'Exam Prep':
+                      return `Difficulty is ${task.difficulty || 'medium'}. Spend ${task.hoursNeeded}h on revision materials: ${task.studyMaterial || 'assigned textbooks'}.`;
+                    case 'Assignment':
+                      return `Verify links & guidelines. Dependency: ${task.dependencies || 'None'}. Review references: ${task.referenceMaterial || 'Lecture notes'}.`;
+                    case 'Health & Fitness':
+                      return task.recovery && task.recovery < 50
+                        ? `Your body recovery is ${task.recovery}%. Tone down workout load/intensity to avoid injuries.`
+                        : `Body recovery is ${task.recovery || '85'}%. Ideal window for this high-performance training block.`;
+                    case 'Shopping':
+                      return `Check list parameters. Budget ceiling is $${task.budget || '150'}. Avoid peak hour shopping lines.`;
+                    case 'Travel':
+                      return `Tickets and hotel: ${task.hotel || 'Booking Confirmed'}. Review custom checklists: ${task.checklist || 'All sets ready'}.`;
+                    default:
+                      return task.customNotes || "Maintain high focus blocks to achieve project milestones successfully.";
+                  }
+                };
+
+                const renderMetaGrid = () => {
+                  switch (task.category) {
+                    case 'Meeting':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Starts in</span>
+                            <span className="text-slate-200 font-semibold font-mono">{relativeTime}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Hourglass className="w-3.5 h-3.5" /> Duration</span>
+                            <span className="text-slate-200 font-mono">{task.preparationTime ? `${task.preparationTime}h` : '1h'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5" /> Priority</span>
+                            <span className="text-blue-400 font-bold">{task.priority.toUpperCase()}</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Bill Payment':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Amount</span>
+                            <span className="text-emerald-400 font-extrabold font-mono">${task.amount || '0.00'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Due in</span>
+                            <span className="text-slate-200 font-mono">{relativeTime}</span>
+                          </div>
+                          {task.lateFee !== undefined && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-red-400" /> Late Fee</span>
+                              <span className="text-red-400 font-mono">${task.lateFee}/day</span>
+                            </div>
+                          )}
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><RotateCcw className="w-3.5 h-3.5" /> Recurring</span>
+                            <span className="text-amber-400 font-semibold">{task.recurring ? 'Yes' : 'No'}</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Study':
+                    case 'Exam Prep':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><BookOpen className="w-3.5 h-3.5" /> Subject</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.subject || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Diff</span>
+                            <span className={`font-bold capitalize ${task.difficulty === 'hard' ? 'text-rose-400' : task.difficulty === 'medium' ? 'text-amber-400' : 'text-emerald-400'}`}>{task.difficulty || 'medium'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> Confidence</span>
+                            <span className="text-slate-200 capitalize font-mono">{task.confidenceLevel || 'medium'}</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Assignment':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5" /> Course</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.course || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Portal</span>
+                            <span className="text-blue-400 truncate max-w-[90px] font-semibold">{task.submissionLink ? 'Canvas' : 'Standard'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-amber-500" /> Blockers</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.dependencies || 'None'}</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Health & Fitness':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Dumbbell className="w-3.5 h-3.5" /> Workout</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.workoutType || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Duration</span>
+                            <span className="text-slate-200 font-mono">{task.duration || '45'}m</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> Recovery</span>
+                            <span className="text-blue-400 font-extrabold font-mono">{task.recovery || '80'}%</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Shopping':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><ShoppingCart className="w-3.5 h-3.5" /> Store</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.store || 'Grocery'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Budget</span>
+                            <span className="text-emerald-400 font-bold font-mono">${task.budget || '100'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> Items</span>
+                            <span className="text-slate-200 font-mono">{task.items ? task.items.split(',').length : 0} items</span>
+                          </div>
+                        </div>
+                      );
+                    case 'Travel':
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Plane className="w-3.5 h-3.5" /> Dest</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.destination || 'N/A'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Home className="w-3.5 h-3.5" /> Hotel</span>
+                            <span className="text-slate-200 truncate max-w-[90px]">{task.hotel || 'N/A'}</span>
+                          </div>
+                        </div>
+                      );
+                    default:
+                      return (
+                        <div className="w-full bg-[#0B1020]/45 border border-white/5 rounded-xl p-3 text-[11px] text-slate-300 space-y-1.5 font-sans">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Hours</span>
+                            <span className="text-slate-200 font-semibold font-mono">{formatTaskTime(task.hoursCompleted)} / {task.hoursNeeded}h</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><Hourglass className="w-3.5 h-3.5" /> Target</span>
+                            <span className="text-slate-200 font-mono">{task.hoursNeeded}h</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-500 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-400" /> Priority</span>
+                            <span className="text-blue-400 font-bold font-mono">{task.priority.toUpperCase()}</span>
+                          </div>
+                        </div>
+                      );
+                  }
+                };
+
+                const renderActionsPanel = () => {
+                  const isCompleted = task.status === 'completed';
+                  const isPaying = payingTaskId === task.id;
+                  const isPreparing = preparingTaskId === task.id;
+                  const isReminded = remindedTaskIds.includes(task.id);
+                  const isShowingTip = showingTipTaskId === task.id;
+
+                  if (isCompleted) {
+                    return (
+                      <div className="flex items-center gap-2 justify-end w-full">
+                        <span className="text-[11px] text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                          <Check className="w-3.5 h-3.5" /> Done
+                        </span>
+                        <div className="flex items-center gap-1 bg-slate-900/40 p-1 rounded-xl border border-white/5">
+                          <button
+                            onClick={() => handleEditClick(task)}
+                            className="w-8 h-8 rounded-lg bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleToggleCompleted(task.id)}
+                            className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+                            title="Restore Task"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  switch (task.category) {
+                    case 'Bill Payment':
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          {isPaying ? (
+                            <div className="flex items-center justify-center gap-2 text-amber-400 text-xs font-semibold py-2 bg-amber-500/5 border border-amber-500/10 rounded-lg">
+                              <div className="w-3.5 h-3.5 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></div>
+                              Processing Payment...
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleSimulatePayment(task.id)}
+                              className="w-full bg-[#D96504] hover:bg-[#F2780C] text-white text-[11px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-amber-900/10 active:scale-[0.98]"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" /> Pay Now
+                            </button>
+                          )}
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => handleToggleCompleted(task.id)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              <Check className="w-3 h-3" /> Mark Paid
+                            </button>
+                            <button
+                              onClick={() => handleToggleReminder(task.id)}
+                              className={`text-[10px] font-semibold py-1.5 rounded-lg border transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer ${
+                                isReminded 
+                                  ? 'bg-blue-500/20 border-blue-500/30 text-blue-400 font-bold' 
+                                  : 'bg-slate-800 hover:bg-slate-700 border-white/5 text-slate-300'
+                              }`}
+                            >
+                              <Bell className="w-3 h-3" /> {isReminded ? 'Reminded' : 'Remind Me'}
+                            </button>
+                          </div>
+                          <div className="flex justify-end gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="flex-1 py-1.5 bg-slate-800/60 hover:bg-slate-700 border border-white/5 text-slate-400 hover:text-white rounded-lg transition-all cursor-pointer flex items-center justify-center text-[10px] font-medium"
+                            >
+                              <Edit2 className="w-3 h-3 mr-1" /> Edit parameters
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+
+                    case 'Meeting':
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          <button
+                            onClick={() => handleSimulatePrepare(task.id)}
+                            className="w-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-blue-950/10"
+                          >
+                            <Users className="w-3.5 h-3.5" /> {isPreparing ? 'Preparing Documents...' : 'Prepare'}
+                          </button>
+                          {isShowingTip && (
+                            <div className="text-[10px] p-2.5 bg-blue-900/40 border border-blue-500/20 rounded-lg text-blue-200 font-sans leading-normal animate-pulse">
+                              <strong>Twin recommendation applied:</strong> Meeting slide-decks aggregated. Buffer scheduled securely.
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              onClick={() => handleToggleCompleted(task.id)}
+                              className="bg-slate-800 hover:bg-emerald-500/10 text-slate-300 hover:text-emerald-400 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              Complete
+                            </button>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+
+                    case 'Shopping':
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          <button
+                            onClick={() => setSelectedShoppingListTaskId(selectedShoppingListTaskId === task.id ? null : task.id)}
+                            className="w-full bg-yellow-600 hover:bg-yellow-500 text-white text-[11px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                          >
+                            <ShoppingCart className="w-3.5 h-3.5" /> {selectedShoppingListTaskId === task.id ? 'Hide Items' : 'View List'}
+                          </button>
+                          {selectedShoppingListTaskId === task.id && task.items && (
+                            <div className="p-2.5 bg-yellow-950/20 border border-yellow-500/20 rounded-lg space-y-1.5 text-[10px]">
+                              {task.items.split(',').map((item: string, i: number) => (
+                                <div key={i} className="flex items-center gap-2 text-slate-300">
+                                  <input type="checkbox" className="rounded text-yellow-500 w-3 h-3 border-white/10" defaultChecked={i % 3 === 0} />
+                                  <span className="font-mono">{item.trim()}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => handleToggleCompleted(task.id)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              <Check className="w-3.5 h-3.5" /> Mark Bought
+                            </button>
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="bg-slate-800/60 hover:bg-slate-700 border border-white/5 text-slate-400 hover:text-white rounded-lg text-[10px] font-semibold py-1.5 transition-all cursor-pointer flex items-center justify-center"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+
+                    case 'Health & Fitness':
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          <button
+                            onClick={() => handleToggleCompleted(task.id)}
+                            className="w-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                          >
+                            <Dumbbell className="w-3.5 h-3.5" /> Start Workout
+                          </button>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer text-center"
+                            >
+                              Reschedule
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="bg-slate-800/60 hover:bg-red-500/25 border border-white/5 text-slate-400 hover:text-red-400 rounded-lg text-[10px] font-semibold py-1.5 transition-all cursor-pointer flex items-center justify-center"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      );
+
+                    case 'Travel':
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          <button
+                            onClick={() => {
+                              alert(`Travel Reference Log\n---------------------\nTickets: ${task.tickets || 'E-TICKET#241951'}\nHotel Stay: ${task.hotel || 'Grand Hyatt Central Midtown'}\nChecklist: ${task.checklist || 'All sets ready'}`);
+                            }}
+                            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+                          >
+                            <Plane className="w-3.5 h-3.5" /> View Tickets
+                          </button>
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              onClick={() => handleToggleCompleted(task.id)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              Check-in Done
+                            </button>
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="bg-slate-800/60 hover:bg-slate-700 border border-white/5 text-slate-400 hover:text-white rounded-lg text-[10px] font-semibold py-1.5 transition-all cursor-pointer flex items-center justify-center"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      );
+
+                    default:
+                      // Study, Assignment, Work, Custom, Habit (these benefit from active timers and hours estimation)
+                      return (
+                        <div className="flex flex-col gap-2 w-full">
+                          <div className="flex items-center gap-1.5 w-full bg-[#0B1020]/20 p-1 rounded-xl border border-white/5 justify-between">
+                            <span className="text-[10px] text-slate-400 px-2 font-mono">
+                              Tracked: <strong>{formatTaskTime(task.hoursCompleted)} / {task.hoursNeeded}h</strong>
+                            </span>
+                            <button
+                              onClick={() => handleToggleTracking(task.id)}
+                              title={task.isTracking ? "Pause Tracking" : "Start Tracking"}
+                              className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                                task.isTracking
+                                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 animate-pulse shadow-md shadow-emerald-500/10'
+                                  : 'bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 text-blue-400 hover:text-white'
+                              }`}
+                            >
+                              {task.isTracking ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                            </button>
+                          </div>
+                          
+                          <div className="w-full bg-slate-900/50 rounded-full h-1 overflow-hidden">
+                            <div 
+                              className="bg-blue-500 h-1 rounded-full transition-all duration-300" 
+                              style={{ width: `${Math.min(100, (task.hoursCompleted / task.hoursNeeded) * 100)}%` }}
+                            ></div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5 mt-0.5">
+                            <button
+                              onClick={() => handleToggleCompleted(task.id)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-semibold py-1.5 rounded-lg border border-white/5 transition-all flex items-center justify-center gap-1 shrink-0 cursor-pointer"
+                            >
+                              <Check className="w-3 h-3" /> Done
+                            </button>
+                            <button
+                              onClick={() => handleEditClick(task)}
+                              className="bg-slate-800/60 hover:bg-slate-700 border border-white/5 text-slate-400 hover:text-white rounded-lg text-[10px] font-semibold py-1.5 transition-all cursor-pointer flex items-center justify-center"
+                              title="Edit Parameters"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={() => handleDeleteTask(task.id)}
+                              className="p-1 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                              title="Delete"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                  }
+                };
+
                 return (
                   <div
                     key={task.id}
-                  className="bg-[#0B1020]/30 border border-white/5 hover:border-white/10 rounded-xl p-3.5 flex items-center justify-between gap-4 group"
-                >
-                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    {/* Checkbox */}
-                    <button
-                      onClick={() => handleToggleCompleted(task.id)}
-                      className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                        task.status === 'completed'
-                          ? 'bg-emerald-500/25 border-emerald-500 text-emerald-400'
-                          : 'border-slate-700 hover:border-slate-500 text-transparent hover:text-slate-500'
-                      }`}
-                    >
-                      <Check className="w-3.5 h-3.5" />
-                    </button>
+                    className={`bg-[#0B1020]/30 border border-white/5 hover:border-white/10 rounded-2xl p-5 flex flex-col md:flex-row md:items-start justify-between gap-5 transition-all group relative overflow-hidden ${
+                      task.status === 'completed' ? 'opacity-70' : ''
+                    }`}
+                  >
+                    {/* Left Details Block */}
+                    <div className="flex items-start gap-4 min-w-0 flex-1">
+                      {/* Custom Category Icon Block */}
+                      {getCategoryIcon(task.category)}
 
-                    {/* Meta info */}
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm font-medium truncate ${
-                        task.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'
-                      }`}>
-                        {task.title}
-                      </p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-sans">
-                          {task.category}
-                        </span>
-                        <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
-                          task.priority === 'high'
-                            ? 'bg-red-500/10 text-red-400 border border-red-500/10'
-                            : task.priority === 'medium'
-                              ? 'bg-amber-500/10 text-amber-400 border border-amber-500/10'
-                              : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/10'
-                        }`}>
-                          {task.priority.toUpperCase()}
-                        </span>
-                        {(task as any).isGoogle && (
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 uppercase font-extrabold">
-                            Google Task
-                          </span>
-                        )}
-                        {task.status !== 'completed' && (
-                          <span className="text-[9px] font-mono px-2 py-0.5 rounded-full bg-red-500/10 text-rose-300 border border-rose-500/10 flex items-center gap-1">
-                            <CalendarDays className="w-2.5 h-2.5 text-rose-400" />
-                            {formatDeadline(task)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Adaptive Twin Meta-Panel inside Task Card */}
-                      {(task.subject || task.course || task.amount !== undefined || task.store || task.workoutType || task.agenda || task.destination || task.customNotes) && (
-                        <div className="mt-2.5 p-2 bg-slate-900/50 border border-white/5 rounded-lg text-[11px] space-y-1.5">
-                          {/* Study/Exam Meta */}
-                          {(task.category === 'Study' || task.category === 'Exam Prep') && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.subject && <div><span className="text-slate-500">Subject:</span> {task.subject}</div>}
-                              {task.examDate && <div><span className="text-slate-500">Exam:</span> {task.examDate}</div>}
-                              {task.topics && <div className="col-span-2"><span className="text-slate-500">Topics:</span> {task.topics}</div>}
-                              {task.difficulty && <div><span className="text-slate-500">Diff:</span> {task.difficulty === 'easy' ? '🟢 Easy' : task.difficulty === 'medium' ? '🟡 Medium' : '🔴 Hard'}</div>}
-                              {task.confidenceLevel && <div><span className="text-slate-500">Confidence:</span> {task.confidenceLevel === 'high' ? '🟢 High' : task.confidenceLevel === 'medium' ? '🟡 Med' : '🔴 Low'}</div>}
-                              {task.studyMaterial && <div className="col-span-2"><span className="text-slate-500">Materials:</span> {task.studyMaterial}</div>}
-                              {task.revisionRequired && <div className="col-span-2 text-emerald-400 font-semibold">🔄 Pre-exam revisions scheduled</div>}
-                            </div>
-                          )}
-
-                          {/* Assignment Meta */}
-                          {task.category === 'Assignment' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.course && <div><span className="text-slate-500">Course:</span> {task.course}</div>}
-                              {task.submissionLink && (
-                                <div className="truncate">
-                                  <span className="text-slate-500">Portal:</span>{' '}
-                                  <a href={task.submissionLink} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
-                                    Link ↗
-                                  </a>
-                                </div>
-                              )}
-                              {task.referenceMaterial && <div className="col-span-2"><span className="text-slate-500">References:</span> {task.referenceMaterial}</div>}
-                              {task.dependencies && <div className="col-span-2 text-amber-400"><span className="text-slate-500">Blockers:</span> {task.dependencies}</div>}
-                            </div>
-                          )}
-
-                          {/* Bill Payment Meta */}
-                          {task.category === 'Bill Payment' && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.amount !== undefined && <div><span className="text-slate-500">Amount:</span> <strong className="text-emerald-400">${task.amount}</strong></div>}
-                              {task.lateFee !== undefined && <div><span className="text-slate-500">Late Fee:</span> <span className="text-red-400">${task.lateFee}</span></div>}
-                              {task.paymentMethod && <div className="col-span-2"><span className="text-slate-500">Method:</span> {task.paymentMethod}</div>}
-                              {task.autoPay && <div className="col-span-2 text-amber-400 font-medium">⚡ Autopay setup in banking portal</div>}
-                            </div>
-                          )}
-
-                          {/* Shopping Meta */}
-                          {task.category === 'Shopping' && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.store && <div><span className="text-slate-500">Store:</span> {task.store}</div>}
-                              {task.budget !== undefined && <div><span className="text-slate-500">Budget:</span> <strong className="text-emerald-400">${task.budget}</strong></div>}
-                              {task.items && <div className="col-span-2"><span className="text-slate-500">List:</span> <span className="text-slate-300">{task.items}</span></div>}
-                            </div>
-                          )}
-
-                          {/* Health & Fitness Meta */}
-                          {task.category === 'Health & Fitness' && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.workoutType && <div><span className="text-slate-500">Workout:</span> {task.workoutType}</div>}
-                              {task.duration && <div><span className="text-slate-500">Duration:</span> {task.duration}m</div>}
-                              {task.intensity && <div><span className="text-slate-500">Intensity:</span> {task.intensity === 'high' ? '🔴 High' : task.intensity === 'medium' ? '🟡 Moderate' : '🟢 Recovery'}</div>}
-                              {task.recovery && <div><span className="text-slate-500">Body Recovery:</span> <strong className="text-blue-400">{task.recovery}%</strong></div>}
-                              {task.goal && <div className="col-span-2"><span className="text-slate-500">Objective:</span> {task.goal}</div>}
-                            </div>
-                          )}
-
-                          {/* Meeting Meta */}
-                          {task.category === 'Meeting' && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.agenda && <div className="col-span-2"><span className="text-slate-500">Agenda:</span> {task.agenda}</div>}
-                              {task.location && <div><span className="text-slate-500">Where:</span> {task.location}</div>}
-                              {task.participants && <div><span className="text-slate-500">With:</span> {task.participants}</div>}
-                              {task.preparationTime && <div><span className="text-slate-500">Prep Required:</span> {task.preparationTime}h</div>}
-                              {task.travelTime && <div><span className="text-slate-500">Transit:</span> {task.travelTime}m</div>}
-                              {task.documents && <div className="col-span-2"><span className="text-slate-500">Attachments:</span> 📄 {task.documents}</div>}
-                            </div>
-                          )}
-
-                          {/* Travel Meta */}
-                          {task.category === 'Travel' && (
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                              {task.destination && <div><span className="text-slate-500">Dest:</span> {task.destination}</div>}
-                              {task.departure && <div><span className="text-slate-500">Depart:</span> {task.departure}</div>}
-                              {task.hotel && <div className="col-span-2"><span className="text-slate-500">Stay:</span> {task.hotel}</div>}
-                              {task.tickets && <div className="col-span-2"><span className="text-slate-500">Tickets/Ref:</span> {task.tickets}</div>}
-                              {task.packing && <div className="col-span-2"><span className="text-slate-500">Pack:</span> {task.packing}</div>}
-                              {task.checklist && <div className="col-span-2 text-blue-300 font-medium">📋 {task.checklist}</div>}
-                            </div>
-                          )}
-
-                          {/* Other custom context notes */}
-                          {task.customNotes && (
-                            <div className="text-slate-300 text-[11px]">
-                              <span className="text-slate-500">Digital Twin Note:</span> {task.customNotes}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-3 shrink-0">
-                    <div className="text-right">
-                      {task.category === 'Bill Payment' ? (
-                        <>
-                          <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
-                            {task.paymentType === 'recurring' ? 'Recurring' : 'One-time'}
-                          </p>
-                          {task.paymentType === 'recurring' && (
-                            <span className="text-[10px] text-slate-500 font-mono block mt-1">
-                              Cycle: {task.cycleTime || 'Monthly'}
+                      {/* Info Content */}
+                      <div className="min-w-0 flex-1">
+                        {/* Badge Row */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {getCategoryBadge(task.category)}
+                          {getRiskBadge(riskLevel)}
+                          {task.isGoogle && (
+                            <span className="text-[9px] font-mono font-extrabold tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20 uppercase">
+                              Google Task
                             </span>
                           )}
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-xs font-mono font-semibold text-slate-300">
-                            {formatTaskTime(task.hoursCompleted)} / {task.hoursNeeded}h
-                          </p>
-                          <span className="text-[10px] text-slate-500 font-mono block mt-1">Goal: {task.hoursNeeded}h</span>
-                        </>
-                      )}
+                        </div>
+
+                        {/* Title */}
+                        <h3 className={`text-base font-bold mt-1.5 font-sans leading-snug transition-colors ${
+                          task.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-100 group-hover:text-white'
+                        }`}>
+                          {task.title}
+                        </h3>
+
+                        {/* Details Grid */}
+                        <div className="flex flex-col gap-1.5 mt-2 text-xs text-slate-400 font-sans">
+                          {task.category === 'Meeting' && (
+                            <>
+                              <span className="flex items-center gap-1.5">
+                                <CalendarDays className="w-3.5 h-3.5 text-blue-400" />
+                                {formatDeadline(task)}
+                              </span>
+                              {task.location && (
+                                <span className="flex items-center gap-1.5">
+                                  <MapPin className="w-3.5 h-3.5 text-slate-500" />
+                                  {task.location}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {task.category === 'Bill Payment' && (
+                            <>
+                              <span className="flex items-center gap-1.5">
+                                <CalendarDays className="w-3.5 h-3.5 text-amber-500" />
+                                Due: {formatDeadline(task)}
+                              </span>
+                              {task.paymentMethod && (
+                                <span className="flex items-center gap-1.5">
+                                  <Wallet className="w-3.5 h-3.5 text-slate-500" />
+                                  {task.paymentMethod}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {task.category !== 'Meeting' && task.category !== 'Bill Payment' && (
+                            <span className="flex items-center gap-1.5">
+                              <CalendarDays className="w-3.5 h-3.5 text-rose-400" />
+                              Deadline: {formatDeadline(task)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Digital Twin Advisory Panel */}
+                        {task.status !== 'completed' && (
+                          <div className="flex items-start gap-2 bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 text-xs text-amber-400 mt-3.5 leading-relaxed">
+                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                            <p className="font-sans font-medium">{getAdvisoryText()}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 bg-slate-900/40 p-1 rounded-xl border border-white/5">
-                      {/* Edit Button */}
-                      <button
-                        id={`edit-task-btn-${task.id}`}
-                        onClick={() => handleEditClick(task)}
-                        title="Edit Task Parameters"
-                        className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer ${
-                          editingTaskId === task.id
-                            ? 'bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-                            : 'bg-slate-800/60 hover:bg-slate-700 text-slate-400 hover:text-white border border-transparent hover:border-slate-600'
-                        }`}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                    {/* Right Parameters and Action Block */}
+                    <div className="flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end gap-4 shrink-0 w-full md:w-[220px]">
+                      {/* Parameter Grid Info Block */}
+                      {renderMetaGrid()}
 
-                      {/* Play/Pause Button */}
-                      {task.status !== 'completed' && task.category !== 'Bill Payment' && (
-                        <button
-                          id={`toggle-track-${task.id}`}
-                          onClick={() => handleToggleTracking(task.id)}
-                          title={task.isTracking ? "Pause Tracking" : "Start Tracking"}
-                          className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer ${
-                            task.isTracking
-                              ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 animate-pulse shadow-md shadow-emerald-500/10'
-                              : 'bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 text-blue-400 hover:text-white'
-                          }`}
-                        >
-                          {task.isTracking ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                        </button>
-                      )}
-
-                      {/* Completed Button */}
-                      <button
-                        id={`toggle-complete-${task.id}`}
-                        onClick={() => handleToggleCompleted(task.id)}
-                        title={task.status === 'completed' ? "Mark as Active" : "Mark as Completed"}
-                        className={`w-8 h-8 rounded-lg transition-all flex items-center justify-center shrink-0 cursor-pointer ${
-                          task.status === 'completed'
-                            ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
-                            : 'bg-slate-800/60 hover:bg-emerald-500/10 border border-slate-700/60 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30'
-                        }`}
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
+                      {/* Action buttons panel */}
+                      {renderActionsPanel()}
                     </div>
-
-                    {/* Delete button */}
-                    <button
-                      id={`delete-task-${task.id}`}
-                      onClick={() => handleDeleteTask(task.id)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
             )}
+          </div>
+
+          {/* Suggested Adjustments (Predictive AI Recommendations) Section */}
+          <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
+                <h3 className="text-sm font-bold text-slate-100 font-sans">Suggested Adjustments</h3>
+              </div>
+              <span className="text-[9px] px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 font-extrabold uppercase tracking-wider flex items-center gap-1">
+                Predictive Actions 🪄
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 font-sans">
+              These recommendations will optimize your day and reduce stress.
+            </p>
+
+            <div className="mt-3.5 space-y-2">
+              {tasks.filter(t => t.status !== 'completed').map((t, idx) => {
+                const adjId = `adj-${t.id}`;
+                const isApplied = activeAppliedAdjustments.includes(adjId);
+
+                if (t.category === 'Bill Payment' && t.lateFee) {
+                  return (
+                    <div key={adjId} className="flex items-center justify-between gap-3 bg-[#0B1020]/25 border border-white/5 rounded-xl p-3 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">
+                          {idx + 1}
+                        </span>
+                        <p className="text-slate-300 truncate font-sans">
+                          Pay <strong className="text-amber-400">{t.title}</strong> today to avoid late fee of <strong className="text-red-400">${t.lateFee}</strong>.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!isApplied) {
+                            setActiveAppliedAdjustments(prev => [...prev, adjId]);
+                            setTasks(prevTasks => prevTasks.map(pt => pt.id === t.id ? { ...pt, priority: 'high' } : pt));
+                            setTimeout(refreshRisk, 100);
+                          }
+                        }}
+                        className={`px-3 py-1 text-[11px] font-semibold rounded-lg transition-all shrink-0 cursor-pointer ${
+                          isApplied 
+                            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white cursor-pointer active:scale-95'
+                        }`}
+                      >
+                        {isApplied ? 'Applied ✓' : 'Apply'}
+                      </button>
+                    </div>
+                  );
+                }
+
+                if (t.category === 'Meeting') {
+                  return (
+                    <div key={adjId} className="flex items-center justify-between gap-3 bg-[#0B1020]/25 border border-white/5 rounded-xl p-3 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">
+                          {idx + 1}
+                        </span>
+                        <p className="text-slate-300 truncate font-sans">
+                          Pre-schedule 30m prep block for meeting: <strong className="text-blue-400">{t.title}</strong>.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!isApplied) {
+                            setActiveAppliedAdjustments(prev => [...prev, adjId]);
+                            setTasks(prevTasks => prevTasks.map(pt => pt.id === t.id ? { ...pt, preparationTime: 0.5 } : pt));
+                            setTimeout(refreshRisk, 100);
+                          }
+                        }}
+                        className={`px-3 py-1 text-[11px] font-semibold rounded-lg transition-all shrink-0 cursor-pointer ${
+                          isApplied 
+                            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white cursor-pointer active:scale-95'
+                        }`}
+                      >
+                        {isApplied ? 'Applied ✓' : 'Apply'}
+                      </button>
+                    </div>
+                  );
+                }
+
+                if ((t.category === 'Study' || t.category === 'Exam Prep') && t.difficulty === 'hard') {
+                  return (
+                    <div key={adjId} className="flex items-center justify-between gap-3 bg-[#0B1020]/25 border border-white/5 rounded-xl p-3 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-5 h-5 rounded-full bg-purple-500/10 text-purple-400 text-[10px] font-bold flex items-center justify-center shrink-0 font-mono">
+                          {idx + 1}
+                        </span>
+                        <p className="text-slate-300 truncate font-sans">
+                          Set revision schedule for hard subject: <strong className="text-violet-400">{t.title}</strong>.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (!isApplied) {
+                            setActiveAppliedAdjustments(prev => [...prev, adjId]);
+                            setTasks(prevTasks => prevTasks.map(pt => pt.id === t.id ? { ...pt, revisionRequired: true } : pt));
+                            setTimeout(refreshRisk, 100);
+                          }
+                        }}
+                        className={`px-3 py-1 text-[11px] font-semibold rounded-lg transition-all shrink-0 cursor-pointer ${
+                          isApplied 
+                            ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 cursor-default'
+                            : 'bg-purple-600 hover:bg-purple-500 text-white cursor-pointer active:scale-95'
+                        }`}
+                      >
+                        {isApplied ? 'Applied ✓' : 'Apply'}
+                      </button>
+                    </div>
+                  );
+                }
+
+                return null;
+              }).filter(Boolean).slice(0, 2)}
+
+              {tasks.filter(t => t.status !== 'completed').length === 0 && (
+                <div className="text-center py-5 bg-[#0B1020]/10 border border-dashed border-white/5 rounded-xl">
+                  <p className="text-xs text-slate-500 font-sans">All tasks completed! Great job optimization state is maximized.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

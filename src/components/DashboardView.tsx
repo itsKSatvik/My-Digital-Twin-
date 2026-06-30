@@ -194,7 +194,26 @@ export default function DashboardView({
     );
   };
 
-  const todayTasks = tasks.filter(t => !t.id.startsWith('task_prev_'));
+  const todayTasks = tasks
+    .filter(t => !t.id.startsWith('task_prev_') && t.status !== 'completed')
+    .sort((a, b) => {
+      // 1. Active tracking first
+      if (a.isTracking && !b.isTracking) return -1;
+      if (!a.isTracking && b.isTracking) return 1;
+      
+      // 2. In progress status next
+      if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+      if (a.status !== 'in_progress' && b.status === 'in_progress') return 1;
+      
+      // 3. Priority next (high > medium > low)
+      const priorityWeight = { high: 3, medium: 2, low: 1 };
+      const weightA = priorityWeight[a.priority] || 0;
+      const weightB = priorityWeight[b.priority] || 0;
+      if (weightA !== weightB) return weightB - weightA;
+      
+      // 4. Deadline remaining hours (closer deadline first)
+      return a.deadlineHours - b.deadlineHours;
+    });
   const { activeEvent, upcomingEvent } = getCurrentActiveAndUpcoming();
 
   // Extract task risk details from pre-calculated array or fallback
@@ -454,11 +473,11 @@ export default function DashboardView({
             </button>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 max-h-[310px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
             {todayTasks.length === 0 ? (
-              <div className="text-center py-10 bg-brand-bg-inner/30 border border-brand-border rounded-xl">
-                <span className="text-2xl">🎉</span>
-                <p className="text-xs text-brand-text-muted mt-2 font-sans">All tasks cleared. Perfect performance today.</p>
+              <div className="text-center py-8 bg-brand-bg-inner/30 border border-brand-border rounded-xl">
+                <span className="text-xl">🎉</span>
+                <p className="text-xs text-brand-text-muted mt-1.5 font-sans">All tasks cleared. Perfect performance today.</p>
               </div>
             ) : (
               todayTasks.map(task => {
@@ -469,15 +488,15 @@ export default function DashboardView({
                   <div
                     key={task.id}
                     onClick={() => setActiveFocusTaskId(task.id)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
                       isActiveFocus 
                         ? 'bg-brand-card-light border-indigo-500/35 shadow-md' 
                         : 'bg-brand-bg-inner/20 border-brand-border hover:border-brand-accent/20'
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-3">
+                    <div className="flex justify-between items-start gap-2.5">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
                             task.priority === 'high' 
                               ? 'bg-rose-500/15 text-rose-400' 
@@ -487,7 +506,7 @@ export default function DashboardView({
                           }`}>
                             {task.priority.toUpperCase()}
                           </span>
-                          <span className="text-[10px] font-medium text-brand-text-muted font-sans">{task.category}</span>
+                          <span className="text-[9px] font-medium text-brand-text-muted font-sans">{task.category}</span>
                           
                           {/* Task-Level Risk Level Badge */}
                           <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
@@ -501,15 +520,15 @@ export default function DashboardView({
                           </span>
                         </div>
 
-                        <h3 className={`text-xs font-semibold mt-1.5 ${task.status === 'completed' ? 'text-brand-text-muted line-through opacity-80' : 'text-brand-text'}`}>
+                        <h3 className={`text-xs font-semibold mt-1 ${task.status === 'completed' ? 'text-brand-text-muted line-through opacity-80' : 'text-brand-text'}`}>
                           {task.title}
                         </h3>
 
                         {/* Task Risk Explanation */}
                         {task.status !== 'completed' && (
-                          <p className={`text-[10px] mt-1 font-sans leading-normal ${
+                          <p className={`text-[9px] mt-0.5 font-sans leading-normal ${
                             riskDetails.riskLevel === 'high' 
-                              ? 'text-rose-400/90 font-medium' 
+                              ? 'text-rose-400/95 font-medium' 
                               : riskDetails.riskLevel === 'medium' 
                                 ? 'text-amber-400/95' 
                                 : 'text-slate-400/80'
@@ -518,46 +537,46 @@ export default function DashboardView({
                           </p>
                         )}
 
-                        <div className="mt-2.5 flex items-center gap-2.5">
+                        <div className="mt-2 flex items-center gap-2">
                           {renderBlockBar(task.hoursCompleted, task.hoursNeeded)}
                           <span className="text-[10px] text-brand-text-muted font-mono">
-                            {task.hoursCompleted.toFixed(1)} / {task.hoursNeeded}h completed ({task.deadlineHours.toFixed(1)}h left)
+                            {task.hoursCompleted.toFixed(1)}/{task.hoursNeeded}h ({task.deadlineHours.toFixed(1)}h left)
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                         {task.status !== 'completed' && onDelayTask && (
                           <button
                             id={`delay-task-${task.id}`}
                             onClick={() => onDelayTask(task.id)}
-                            title="Delay Task (Twin Recalibration Demo)"
-                            className="w-7.5 h-7.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                            title="Delay Task (Twin Recalibration)"
+                            className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
                           >
-                            <Clock className="w-3.5 h-3.5" />
+                            <Clock className="w-3 h-3" />
                           </button>
                         )}
                         {task.status !== 'completed' && (
                           <button
                             onClick={() => handleToggleTracking(task.id)}
-                            className={`w-7.5 h-7.5 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+                            className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
                               task.isTracking 
                                 ? 'bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 animate-pulse' 
                                 : 'bg-brand-accent/10 hover:bg-brand-accent border border-brand-accent/15 text-brand-accent hover:text-white'
                             }`}
                           >
-                            {task.isTracking ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                            {task.isTracking ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
                           </button>
                         )}
                         <button
                           onClick={() => handleToggleCompleted(task.id)}
-                          className={`w-7.5 h-7.5 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+                          className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
                             task.status === 'completed' 
                               ? 'bg-emerald-500 text-white shadow-sm border-0' 
                               : 'bg-brand-bg-inner/80 hover:bg-emerald-500/15 border border-brand-border text-brand-text-muted hover:text-emerald-500'
                           }`}
                         >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CheckCircle2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
