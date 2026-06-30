@@ -25,9 +25,10 @@ interface TwinMemoryViewProps {
   tasks: Task[];
   risk: RiskAnalysis;
   timezone: string;
+  customMemories?: any[];
 }
 
-export default function TwinMemoryView({ tasks, risk, timezone }: TwinMemoryViewProps) {
+export default function TwinMemoryView({ tasks, risk, timezone, customMemories = [] }: TwinMemoryViewProps) {
   // Demo State: Calibration Day (interactive slider to show twin's evolution)
   const [calibrationDay, setCalibrationDay] = useState<number>(14);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
@@ -188,7 +189,18 @@ export default function TwinMemoryView({ tasks, risk, timezone }: TwinMemoryView
 
   // Filterable Observations
   const observations = useMemo(() => {
+    const mappedCustom = customMemories.map((m: any, idx: number) => ({
+      id: m.id || `custom-memory-${idx}`,
+      category: m.category || 'deadlines',
+      icon: Clock,
+      iconColor: m.iconColor || 'text-amber-400 animate-pulse',
+      title: m.title || 'Behavior Recalibrated',
+      text: m.text,
+      isNew: true
+    }));
+
     const list = [
+      ...mappedCustom,
       {
         id: 'obs-1',
         category: 'circadian',
@@ -233,7 +245,7 @@ export default function TwinMemoryView({ tasks, risk, timezone }: TwinMemoryView
 
     if (activeObservationCategory === 'all') return list;
     return list.filter(item => item.category === activeObservationCategory);
-  }, [activeObservationCategory, realStats.topCategory]);
+  }, [activeObservationCategory, realStats.topCategory, customMemories]);
 
   // Future Predictions based on current tasks and calibration
   const predictions = useMemo(() => {
@@ -622,8 +634,13 @@ export default function TwinMemoryView({ tasks, risk, timezone }: TwinMemoryView
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-xs font-bold text-slate-200 font-sans tracking-tight">
+                    <h3 className="text-xs font-bold text-slate-200 font-sans tracking-tight flex items-center gap-1.5 flex-wrap">
                       {item.title}
+                      {(item as any).isNew && (
+                        <span className="text-[8px] bg-amber-500/20 border border-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded font-mono animate-pulse uppercase tracking-wider">
+                          New Behavior
+                        </span>
+                      )}
                     </h3>
                     <p className="text-xs text-slate-400 leading-relaxed font-sans">
                       {item.text}

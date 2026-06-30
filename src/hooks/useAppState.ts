@@ -83,6 +83,20 @@ export function useAppState() {
   // 5. Navigation & UI States
   const [activeFocusTaskId, setActiveFocusTaskId] = useState<string>('');
 
+  // 5.5. Interactive Digital Twin Demo Flow States
+  const [isDelayingTask, setIsDelayingTask] = useState<boolean>(false);
+  const [customMemories, setCustomMemories] = useState<any[]>(() => {
+    const saved = localStorage.getItem('dt_custom_memories');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+
   // 6. Chat messaging states
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -213,6 +227,102 @@ export function useAppState() {
       return next;
     });
   }, []);
+
+  // Delay a task flow with immediate feedback, risk updates, and Memory storage
+  const onDelayTask = useCallback((taskId: string) => {
+    setIsDelayingTask(true);
+    
+    // Simulate 1.2s processing window of Digital Twin recalculation
+    setTimeout(() => {
+      let taskTitleResolved = 'Assignment';
+
+      // 1. Update tasks to show decreased deadline buffer
+      setTasksState(prev => {
+        const next = prev.map(t => {
+          if (t.id === taskId) {
+            taskTitleResolved = t.title;
+            const newDeadline = Math.max(0.5, t.deadlineHours - 2.0);
+            return {
+              ...t,
+              deadlineHours: newDeadline,
+              status: t.status === 'todo' ? ('in_progress' as const) : t.status
+            };
+          }
+          return t;
+        });
+        storageService.setTasks(next);
+        return next;
+      });
+
+      // 2. Update schedule events to show shifted conflict blocks
+      setScheduleEventsState(prev => {
+        const next = prev.map(evt => {
+          if (evt.category === 'Workout' || evt.title.includes('Training') || evt.title.includes('Gym')) {
+            return {
+              ...evt,
+              startTime: '19:00',
+              endTime: '20:30',
+              title: 'Strength Training (Circadian Collision Risk ⚠️)'
+            };
+          }
+          return evt;
+        });
+        storageService.setScheduleEvents(next);
+        return next;
+      });
+
+      // 3. Update Risk meter score, explanation, and Digital Twin statement
+      setRisk({
+        riskScore: 91,
+        likelyToMiss: [taskTitleResolved],
+        suggestions: [
+          `Postpone Strength Training entirely from today's schedule.`,
+          `Activate Deep Focus mode immediately before evening brain fog.`
+        ],
+        explanation: `Melatonin boundary alert. Sleep buffer reduced by 2.1 hours.`,
+        todayPriorities: [taskTitleResolved, 'Exam Prep'],
+        predictedCompletionTimes: '11:45 PM',
+        suggestedScheduleChanges: [
+          `Move Workout block downstream to Sunday.`,
+          `Reschedule Leisure block entirely.`
+        ],
+        productivitySummary: `Your schedule is severely congested. Bedtime rest cushion critical.`,
+        digitalTwinStatement: `⚠️ I detected you postponed '${taskTitleResolved}' by 2.0 hours. This delays your deep-focus block into the late-night fatigue zone, colliding directly with your 10:30 PM Melatonin threshold. Cognitive capacity drops by 35% past midnight, driving your Day Risk to 91%.`,
+        tasksWithRisk: [
+          { id: taskId, riskLevel: 'high' as const, explanation: 'Cognitive load delayed past circadian buffer.' }
+        ]
+      });
+
+      // 4. Record new behavior in Twin Memory
+      const newMemory = {
+        id: `custom-obs-${Date.now()}`,
+        category: 'deadlines',
+        title: `Delayed ${taskTitleResolved} Past Optimal Window`,
+        text: `Delayed high-priority ${taskTitleResolved} past afternoon buffer. Push focused analytical work past 10:30 PM Melatonin threshold, reducing rest cushion by 2.1h and creating circadian mismatch.`,
+        iconColor: 'text-amber-400 animate-pulse'
+      };
+
+      setCustomMemories(prev => {
+        const next = [newMemory, ...prev];
+        localStorage.setItem('dt_custom_memories', JSON.stringify(next));
+        return next;
+      });
+
+      // Append chatbot alert
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMessages(prev => [
+        ...prev,
+        {
+          id: 'delay_alert_' + Date.now(),
+          sender: 'ai',
+          text: `### ⚠️ CIRCADIAN COLLISION RISK ELEVATED\nI detected that you delayed your **${taskTitleResolved}** task:\n*   **Circadian Mismatch**: Moving this block delays study until late-night, colliding with your sleep threshold.\n*   **Day Risk Score**: Recalculated at **91%** (Severe overload).\n*   **Twin Memory**: Behavioral delay pattern has been recorded for calibration.`,
+          timestamp: timeStr
+        }
+      ]);
+
+      setIsDelayingTask(false);
+    }, 1200);
+  }, [setTasksState, setScheduleEventsState, setRisk, setMessages]);
 
   // Trigger manual schedule reorganization (Digital Twin Override)
   const triggerManualReorganization = useCallback(async () => {
@@ -346,7 +456,7 @@ export function useAppState() {
         tasksWithRisk: res.tasksWithRisk,
       });
     } catch (error) {
-      console.error('AI risk calculation error, using local fallback:', error);
+      console.warn('AI risk calculation error, using local fallback:', error);
       // Heuristic fallback calculation
       const active = tasks.filter(t => t.status !== 'completed');
       if (active.length === 0) {
@@ -418,7 +528,7 @@ export function useAppState() {
       setPlanStepsState(steps);
       storageService.setPlanSteps(steps);
     } catch (error) {
-      console.error('Failed to generate dynamic plan, using fallback steps:', error);
+      console.warn('Failed to generate dynamic plan, using fallback steps:', error);
       // Custom dynamic fallback based on the active state
       const active = tasks.filter(t => t.status !== 'completed');
       const mostUrgent = active[0]?.title || 'Assignment';
@@ -582,6 +692,9 @@ export function useAppState() {
     triggerManualReorganization,
     acceptTwinReorganization,
     dismissTwinReorganization,
+    isDelayingTask,
+    onDelayTask,
+    customMemories,
   };
 }
 

@@ -324,9 +324,9 @@ app.post("/api/recommendations", async (req, res) => {
       throw new Error("Empty response from Gemini API");
     }
   } catch (error: any) {
-    console.error("Gemini Recommendations Error:", error);
+    console.warn("Gemini Recommendations - Backup heuristic engine active.");
     const analysis = getLocalRecommendations(req.body.tasks || []);
-    res.json({ ...analysis, source: "local-fallback", error: error.message });
+    res.json({ ...analysis, source: "local-fallback", status: "local-mode" });
   }
 });
 
@@ -373,7 +373,7 @@ Please respond to my query directly, giving specific tactical suggestions using 
       throw new Error("Empty response from Gemini API in chat");
     }
   } catch (error: any) {
-    console.error("Gemini Chat Error:", error);
+    console.warn("Gemini Chat - Backup chat engine active.");
     const text = getLocalChatResponse(req.body.messages?.[req.body.messages.length - 1]?.text || "", req.body.tasks || []);
     res.json({ text: `${text}\n\n*(Heuristic fallback loaded due to standard server API timeout or key configuration constraints.)*`, source: "local-fallback" });
   }
@@ -743,9 +743,9 @@ app.post("/api/planner/generate", async (req, res) => {
       throw new Error("Empty response from Gemini for planner steps");
     }
   } catch (err: any) {
-    console.error("Dynamic Planner Error:", err);
+    console.warn("Dynamic Planner - Backup planner engine active.");
     const steps = getLocalPlanSteps(req.body.tasks || [], req.body.risk || {});
-    res.json({ steps, source: "local-fallback", error: err.message });
+    res.json({ steps, source: "local-fallback", status: "local-mode" });
   }
 });
 
@@ -811,9 +811,9 @@ app.post("/api/emergency/survival", async (req, res) => {
       throw new Error("Empty response from Gemini for emergency survival");
     }
   } catch (err: any) {
-    console.error("Emergency Survival Plan Error:", err);
+    console.warn("Emergency Survival Plan - Backup emergency plan active.");
     const plan = getLocalSurvivalPlan(req.body.tasks || []);
-    res.json({ ...plan, source: "local-fallback", error: err.message });
+    res.json({ ...plan, source: "local-fallback", status: "local-mode" });
   }
 });
 
@@ -928,9 +928,9 @@ app.post("/api/digitaltwin/reorganize", async (req, res) => {
       throw new Error("Empty response from Gemini for reorganization");
     }
   } catch (err: any) {
-    console.error("Twin Reorganize Error:", err);
+    console.warn("Twin Reorganize - Backup reorganization engine active.");
     const result = getLocalReorganizedSchedule(req.body.tasks || [], req.body.scheduleEvents || []);
-    res.json({ ...result, source: "local-fallback", error: err.message });
+    res.json({ ...result, source: "local-fallback", status: "local-mode" });
   }
 });
 

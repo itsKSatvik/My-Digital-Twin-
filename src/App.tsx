@@ -68,6 +68,9 @@ export default function App() {
     triggerManualReorganization,
     acceptTwinReorganization,
     dismissTwinReorganization,
+    isDelayingTask,
+    onDelayTask,
+    customMemories,
   } = useAppState();
 
   // Synchronize document classes on theme changes
@@ -256,6 +259,8 @@ export default function App() {
                 handleToggleCompleted={handleToggleCompleted}
                 triggerManualReorganization={triggerManualReorganization}
                 isReorganizing={isReorganizing}
+                isDelayingTask={isDelayingTask}
+                onDelayTask={onDelayTask}
               />
             )}
             {activeTab === 'tasks' && (
@@ -332,6 +337,7 @@ export default function App() {
                 tasks={tasks}
                 risk={risk}
                 timezone={timezone}
+                customMemories={customMemories}
               />
             )}
             {activeTab === 'settings' && (

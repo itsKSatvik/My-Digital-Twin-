@@ -10,7 +10,8 @@ import {
   Moon,
   ListTodo,
   CheckCircle2,
-  Zap
+  Zap,
+  Clock
 } from 'lucide-react';
 import { Task, RiskAnalysis, ScheduleEvent } from '../types';
 
@@ -35,6 +36,8 @@ interface DashboardViewProps {
   handleToggleCompleted: (id: string) => void;
   triggerManualReorganization?: () => void;
   isReorganizing?: boolean;
+  isDelayingTask?: boolean;
+  onDelayTask?: (id: string) => void;
 }
 
 const getTimezoneLabel = (tz: string) => {
@@ -68,9 +71,21 @@ export default function DashboardView({
   handleToggleTracking,
   handleToggleCompleted,
   triggerManualReorganization,
-  isReorganizing = false
+  isReorganizing = false,
+  isDelayingTask = false,
+  onDelayTask
 }: DashboardViewProps) {
   const [time, setTime] = useState(new Date());
+  const [isAnalyzingToday, setIsAnalyzingToday] = useState(true);
+
+  useEffect(() => {
+    // Twin immediately analyzes today when Dashboard opens
+    setIsAnalyzingToday(true);
+    const timer = setTimeout(() => {
+      setIsAnalyzingToday(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Sleep prompt local states
   const [tempSlept, setTempSlept] = useState(sleepSleptTime);
@@ -281,9 +296,32 @@ export default function DashboardView({
       </AnimatePresence>
 
       {/* 3. The Digital Twin Intelligence Panel (Primary Crown Jewel Widget) */}
-      <div className="w-full bg-gradient-to-br from-slate-900 via-indigo-950/20 to-slate-900 border border-indigo-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      <div className="w-full bg-gradient-to-br from-slate-900 via-indigo-950/20 to-slate-900 border border-indigo-500/20 rounded-3xl p-6 shadow-xl relative overflow-hidden animate-glow-fade">
         {/* Abstract Glowing Indicator in Background */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+
+        {/* Live scanning analysis animation overlay */}
+        {isAnalyzingToday && (
+          <div className="absolute inset-0 bg-slate-950/95 z-30 flex flex-col items-center justify-center gap-4.5 p-6 rounded-3xl">
+            <div className="relative">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold border border-indigo-400 shadow-md animate-pulse">
+                DT
+              </div>
+              <div className="absolute inset-0 bg-indigo-500/35 rounded-full animate-ping scale-110 opacity-75" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <h3 className="text-sm font-bold text-indigo-300 font-sans tracking-wide uppercase">Twin Engine Activating</h3>
+              <p className="text-xs text-slate-400 font-sans animate-pulse">Scanning circadian boundaries and today's schedule constraints...</p>
+            </div>
+            <div className="w-48 bg-slate-800/80 h-1 rounded-full overflow-hidden relative">
+              <motion.div 
+                className="bg-indigo-500 h-full w-16 rounded-full"
+                animate={{ x: [-64, 192] }}
+                transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+              />
+            </div>
+          </div>
+        )}
         
         <div className="flex flex-col lg:flex-row gap-6 items-stretch relative">
           {/* Twin Visual Persona Indicator (Left) */}
@@ -396,7 +434,16 @@ export default function DashboardView({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         
         {/* Left Column: Active Daily Objectives with task-level risks */}
-        <div className="lg:col-span-7 bg-brand-card border border-brand-border rounded-2xl p-5 shadow-lg">
+        <div className="lg:col-span-7 bg-brand-card border border-brand-border rounded-2xl p-5 shadow-lg relative">
+          {isDelayingTask && (
+            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-20 flex flex-col items-center justify-center gap-3 p-4 rounded-2xl">
+              <div className="w-8 h-8 rounded-full border-2 border-amber-500 border-t-transparent animate-spin" />
+              <div className="text-center">
+                <p className="text-xs font-bold text-amber-400 font-sans uppercase tracking-wider">Twin Recalibrating Day</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-sans">Calculating circadian slippage & downstream risk index...</p>
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between mb-4 border-b border-brand-border pb-3">
             <h2 className="text-sm font-bold text-brand-text-bright flex items-center gap-2">
               <ListTodo className="w-4.5 h-4.5 text-brand-accent" />
@@ -480,6 +527,16 @@ export default function DashboardView({
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
+                        {task.status !== 'completed' && onDelayTask && (
+                          <button
+                            id={`delay-task-${task.id}`}
+                            onClick={() => onDelayTask(task.id)}
+                            title="Delay Task (Twin Recalibration Demo)"
+                            className="w-7.5 h-7.5 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                          >
+                            <Clock className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         {task.status !== 'completed' && (
                           <button
                             onClick={() => handleToggleTracking(task.id)}

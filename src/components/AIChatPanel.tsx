@@ -67,7 +67,7 @@ export default function AIChatPanel({ tasks, messages, setMessages }: AIChatPane
 
       setMessages(prev => [...prev, aiMsg]);
     } catch (error) {
-      console.error("Chat Error:", error);
+      console.warn("Chat Error (Heuristic Fallback Engaged):", error);
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'ai',
