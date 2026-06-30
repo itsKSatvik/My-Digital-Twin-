@@ -250,7 +250,16 @@ app.post("/api/recommendations", async (req, res) => {
       )}. Current local time is ${new Date().toISOString()}. Provide a realistic risk assessment and proactive day planning metadata.`,
       config: {
         systemInstruction:
-          "You are the user's ultimate Digital Twin. Calculate a real risk score (0-100) based on how much work is remaining vs the deadline. List any tasks that are likely to be missed, and give exactly 3 short, punchy, highly actionable suggestions to minimize risk. Also, identify Today's Priorities (list of task titles sorted by priority), Predicted Completion Time (e.g. '8:30 PM' or '10:15 PM' based on local time and total hours), Suggested Schedule Changes (e.g. 'Postpone Gym to Sunday', 'Cancel Leisure block'), a concise Productivity Summary paragraph, a first-person Twin Statement expressing advice with personality (e.g. 'I noticed today's plan is unrealistic. You usually lose focus after 4 PM, so I suggest...'), and calculate individual risk level (LOW, MEDIUM, or HIGH) and brief explanation for each and every task.",
+          "You are the user's ultimate Digital Twin. Calculate a real overall risk score (0-100) based on how much work is remaining vs the deadline. Each task belongs to one of 12 intelligent planning categories (Study, Work, Assignment, Meeting, Bill Payment, Health & Fitness, Shopping, Travel, Household, Personal Goal, Habit, Custom). Every category has specific risk factors and requires completely different reasoning: \n" +
+          "- Study: Risk is based on Subject topics remaining, Difficulty, Confidence Level, and proximity to the exam date. Suggestions should focus on Pomodoro retention and flashcard cycles.\n" +
+          "- Assignment: Risk is based on course weight, dependencies/blockers (e.g. incomplete labs, api specs), and submission portals. Recommendations should focus on modular scaffolding.\n" +
+          "- Bill Payment: Risk is the cost of late fees, autolock dates, and autodebit setup. Suggest checking balances, paying early, and configuring autopay.\n" +
+          "- Health & Fitness: Risk is overtraining/burnout, matching body recovery scores (e.g., if recovery score is low, reduce workout load), and intensity levels. Suggestions should focus on injury prevention and hydration.\n" +
+          "- Meeting: Risk is travel/transit times, preparation notes, and participant alignment. Suggestions should focus on pre-reading slide decks.\n" +
+          "- Travel: Risk is tickets/ref mismatch, booking lock-ins, and packing checklist completion. Suggestions should focus on boarding times.\n" +
+          "- Shopping: Risk is budget caps, store queues, and inventory requirements.\n" +
+          "- Habits / Personal Goals: Risk is streak decay and friction.\n" +
+          "Analyze the tasks array (including their nested category-specific metadata) and calculate a real overall risk score (0-100). Identify Today's Priorities (list of task titles sorted by priority), Predicted Completion Time (e.g. '8:30 PM' or '10:15 PM' based on local time and total hours), Suggested Schedule Changes, a concise Productivity Summary paragraph, a first-person Twin Statement expressing coaching advice with a distinct, supportive but direct personality, and calculate individual risk level (LOW, MEDIUM, or HIGH) and brief, highly specific explanation for each and every task based on its category-specific metadata fields.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -363,7 +372,14 @@ Please respond to my query directly, giving specific tactical suggestions using 
       ],
       config: {
         systemInstruction:
-          "You are an elite productivity AI. Analyze the user's workload, risk level, and questions, and give direct, blunt, and highly effective advice. Do not beat around the bush. Tell them exactly what to skip, what to postpone, and what to finish first to stay on track. Format with clean headers, bullet points, and bold text.",
+          "You are an elite productivity AI acting as the user's Digital Twin. Speak with absolute authority and direct, friendly personality. You understand the user's 12 task categories (Study, Work, Assignment, Meeting, Bill Payment, Health & Fitness, Shopping, Travel, Household, Personal Goal, Habit, Custom) and their nested metadata fields. Formulate highly category-specific plans: \n" +
+          "- For Study/Exam Prep, advise on spaced repetition, active recall, and confidence leveling.\n" +
+          "- For Assignments, suggest breaking dependencies and staging draft commits.\n" +
+          "- For Bill Payments, prompt to secure autopay and calculate cash flow safety with late fee buffers.\n" +
+          "- For Health & Fitness, cross-reference their recovery score and intensity, suggesting active recovery if body recovery is low.\n" +
+          "- For Meetings, highlight necessary pre-reading slide decks or transit time blocks.\n" +
+          "- For Travel, prompt about tickets, hotel bookings, and packing checks.\n" +
+          "Analyze the user's message and their task list with nested metadata parameters. Give precise, blunt, tactical advice formatted with rich Markdown, headers, and bullet points.",
       },
     });
 
@@ -706,7 +722,14 @@ app.post("/api/planner/generate", async (req, res) => {
       )} and this risk assessment: ${JSON.stringify(risk)}. Output exactly 3 sequential action steps in the requested JSON structure.`,
       config: {
         systemInstruction:
-          "You are the user's ultimate Digital Twin. Create 3 highly customized steps to help the user clear their bottleneck tasks. Be concrete: mention actual task names, exact timings, and precise focus tactics. For each step, include fields for priority (Low, Medium, High, Critical), duration (e.g. '90 mins'), reason why this step is critical, expectedFinishTime (e.g. '4:30 PM'), dependencies (e.g. ['Clear workspace']), and confidence (0-100 percentage meeting this target).",
+          "You are the user's high-performance Digital Twin. Each task belongs to one of 12 intelligent categories (Study, Work, Assignment, Meeting, Bill Payment, Health & Fitness, Shopping, Travel, etc.) and contains custom category metadata. Generate 3 highly customized sequential steps to help the user clear their bottleneck tasks. Make the steps completely category-aware:\n" +
+          "- Study steps should include Pomodoro cycles and active recall.\n" +
+          "- Assignment steps should emphasize unblocking prerequisites and building draft scaffolding.\n" +
+          "- Bill Payment steps should emphasize checking banks, processing portal transfers, and matching late-fee risk thresholds.\n" +
+          "- Workout steps should suggest active recovery, stretching, or dynamic sets depending on their recovery scores.\n" +
+          "- Meeting steps must allocate transit buffers and slide-deck reviews.\n" +
+          "- Travel steps should emphasize digital check-ins and travel checks.\n" +
+          "Be concrete, refer to specific task names, and specify priorities (Low, Medium, High, Critical), durations, precise reasons, expected completion times, and percentage confidence.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -767,7 +790,13 @@ app.post("/api/emergency/survival", async (req, res) => {
       )}. Reorder tasks, identify specific optional activities to skip today, and produce a survival plan in rich Markdown format.`,
       config: {
         systemInstruction:
-          "You are the user's high-performance Digital Twin. Reorder the user's tasks array to prioritize high-priority, high-load work first, and defer or recommend pausing low-priority work. Recommend exactly 3 specific non-essential activities/events to skip or postpone (e.g., 'Reschedule social coffee', 'Postpone laundry chores'). Write a direct, brutally honest emergency survival plan in rich Markdown format with clean bullet points and numbered protocols. Be specific to their actual tasks.",
+          "You are the user's high-performance Digital Twin. Each task belongs to one of 12 categories (Study, Work, Assignment, Meeting, Bill Payment, Health & Fitness, Shopping, Travel, etc.) and contains custom category metadata. Analyze these parameters to build a tactical survival plan:\n" +
+          "- If there is an urgent Study/Exam task, recommend cutting administrative tasks and starting flashcards immediately.\n" +
+          "- If there is an urgent Assignment, suggest building MVP drafts and skipping secondary details.\n" +
+          "- If there is an urgent Bill Payment, suggest immediate electronic settlement to avoid late fees.\n" +
+          "- If they have high-intensity Workouts scheduled but low body recovery scores, suggest converting them to light recovery stretches or skipping them to save mental reserve.\n" +
+          "- If they have Meetings, recommend sending brief updates and skipping status calls.\n" +
+          "Reorder the user's tasks array to prioritize critical, high-load work first, and recommend exactly 3 specific non-essential activities/events to skip or postpone today. Write a direct, brutally honest emergency survival plan in rich Markdown format with clean bullet points and numbered protocols.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   Plus, 
@@ -18,9 +18,18 @@ import {
   CalendarDays,
   Play,
   Pause,
-  CreditCard
+  CreditCard,
+  FileText,
+  Dumbbell,
+  ShoppingCart,
+  Plane,
+  Home,
+  Target,
+  Activity,
+  Layers
 } from 'lucide-react';
-import { Task } from '../types';
+import { Task, TaskCategory } from '../types';
+import { detectTaskCategory } from '../utils/taskDetector';
 
 interface TasksViewProps {
   tasks: Task[];
@@ -43,14 +52,69 @@ export default function TasksView({
 }: TasksViewProps) {
   // Form States
   const [newTitle, setNewTitle] = useState('');
-  const [newCategory, setNewCategory] = useState<Task['category']>('Assignment');
+  const [newCategory, setNewCategory] = useState<TaskCategory>('Assignment');
+  const [isAutoDetected, setIsAutoDetected] = useState(false);
   const [newHoursNeeded, setNewHoursNeeded] = useState(8);
   const [newPriority, setNewPriority] = useState<Task['priority']>('medium');
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [addToGoogleTasks, setAddToGoogleTasks] = useState(false);
 
+  // Custom metadata states
+  // STUDY
+  const [studySubject, setStudySubject] = useState('');
+  const [studyExamDate, setStudyExamDate] = useState('');
+  const [studyTopics, setStudyTopics] = useState('');
+  const [studyDifficulty, setStudyDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [studyConfidence, setStudyConfidence] = useState<'low' | 'medium' | 'high'>('medium');
+  const [studyMaterial, setStudyMaterial] = useState('');
+  const [studyRevision, setStudyRevision] = useState(false);
+
+  // ASSIGNMENT
+  const [assignCourse, setAssignCourse] = useState('');
+  const [assignDependencies, setAssignDependencies] = useState('');
+  const [assignRefMaterial, setAssignRefMaterial] = useState('');
+  const [assignSubLink, setAssignSubLink] = useState('');
+
+  // BILL PAYMENT
+  const [billAmount, setBillAmount] = useState<number | ''>('');
+  const [billRecurring, setBillRecurring] = useState(false);
+  const [billMethod, setBillMethod] = useState('');
+  const [billLateFee, setBillLateFee] = useState<number | ''>('');
+  const [billAutoPay, setBillAutoPay] = useState(false);
   const [paymentType, setPaymentType] = useState<'one-time' | 'recurring'>('one-time');
   const [cycleTime, setCycleTime] = useState<string>('Monthly');
+
+  // SHOPPING
+  const [shopStore, setShopStore] = useState('');
+  const [shopItems, setShopItems] = useState('');
+  const [shopBudget, setShopBudget] = useState<number | ''>('');
+
+  // WORKOUT / HEALTH & FITNESS
+  const [workWorkoutType, setWorkWorkoutType] = useState('');
+  const [workDuration, setWorkDuration] = useState<number | ''>('');
+  const [workIntensity, setWorkIntensity] = useState<'low' | 'medium' | 'high'>('medium');
+  const [workGoal, setWorkGoal] = useState('');
+  const [workRecovery, setWorkRecovery] = useState<number | ''>('');
+  const [workSleep, setWorkSleep] = useState<number | ''>('');
+
+  // MEETING
+  const [meetAgenda, setMeetAgenda] = useState('');
+  const [meetLocation, setMeetLocation] = useState('');
+  const [meetParticipants, setMeetParticipants] = useState('');
+  const [meetPrepTime, setMeetPrepTime] = useState<number | ''>('');
+  const [meetDocuments, setMeetDocuments] = useState('');
+  const [meetTravelTime, setMeetTravelTime] = useState<number | ''>('');
+
+  // TRAVEL
+  const [travelDest, setTravelDest] = useState('');
+  const [travelDeparture, setTravelDeparture] = useState('');
+  const [travelPacking, setTravelPacking] = useState('');
+  const [travelTickets, setTravelTickets] = useState('');
+  const [travelHotel, setTravelHotel] = useState('');
+  const [travelChecklist, setTravelChecklist] = useState('');
+
+  // CUSTOM
+  const [customNotes, setCustomNotes] = useState('');
 
   const [newDeadlineDate, setNewDeadlineDate] = useState(() => {
     const tomorrow = new Date();
@@ -62,6 +126,90 @@ export default function TasksView({
   // Filter States
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [filterPriority, setFilterPriority] = useState<string>('All');
+
+  // Helper to reset form metadata
+  const resetMetadataForm = () => {
+    setNewTitle('');
+    setNewHoursNeeded(8);
+    setNewPriority('medium');
+    setNewCategory('Assignment');
+    setIsAutoDetected(false);
+    
+    // Reset study
+    setStudySubject('');
+    setStudyExamDate('');
+    setStudyTopics('');
+    setStudyDifficulty('medium');
+    setStudyConfidence('medium');
+    setStudyMaterial('');
+    setStudyRevision(false);
+
+    // Reset assignment
+    setAssignCourse('');
+    setAssignDependencies('');
+    setAssignRefMaterial('');
+    setAssignSubLink('');
+
+    // Reset bill
+    setBillAmount('');
+    setBillRecurring(false);
+    setBillMethod('');
+    setBillLateFee('');
+    setBillAutoPay(false);
+    setPaymentType('one-time');
+    setCycleTime('Monthly');
+
+    // Reset shopping
+    setShopStore('');
+    setShopItems('');
+    setShopBudget('');
+
+    // Reset workout
+    setWorkWorkoutType('');
+    setWorkDuration('');
+    setWorkIntensity('medium');
+    setWorkGoal('');
+    setWorkRecovery('');
+    setWorkSleep('');
+
+    // Reset meeting
+    setMeetAgenda('');
+    setMeetLocation('');
+    setMeetParticipants('');
+    setMeetPrepTime('');
+    setMeetDocuments('');
+    setMeetTravelTime('');
+
+    // Reset travel
+    setTravelDest('');
+    setTravelDeparture('');
+    setTravelPacking('');
+    setTravelTickets('');
+    setTravelHotel('');
+    setTravelChecklist('');
+
+    // Reset custom
+    setCustomNotes('');
+
+    const tomorrow = new Date();
+    tomorrow.setHours(tomorrow.getHours() + 24);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setNewDeadlineDate(`${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`);
+  };
+
+  // Smart Task Detection on Keypress
+  const handleTitleChange = (val: string) => {
+    setNewTitle(val);
+    if (!editingTaskId) {
+      const { category, confidence } = detectTaskCategory(val);
+      if (confidence === 'high') {
+        setNewCategory(category);
+        setIsAutoDetected(true);
+      } else {
+        setIsAutoDetected(false);
+      }
+    }
+  };
 
   // Add Task
   const handleAddTask = async (e: React.FormEvent) => {
@@ -82,13 +230,66 @@ export default function TasksView({
       deadlineDate: newDeadlineDate,
       status: 'todo',
       priority: newPriority,
+      
+      // Study
+      subject: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studySubject.trim() || undefined : undefined,
+      examDate: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyExamDate || undefined : undefined,
+      topics: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyTopics.trim() || undefined : undefined,
+      difficulty: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyDifficulty : undefined,
+      confidenceLevel: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyConfidence : undefined,
+      studyMaterial: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyMaterial.trim() || undefined : undefined,
+      revisionRequired: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyRevision : undefined,
+
+      // Assignment
+      course: newCategory === 'Assignment' ? assignCourse.trim() || undefined : undefined,
+      dependencies: newCategory === 'Assignment' ? assignDependencies.trim() || undefined : undefined,
+      referenceMaterial: newCategory === 'Assignment' ? assignRefMaterial.trim() || undefined : undefined,
+      submissionLink: newCategory === 'Assignment' ? assignSubLink.trim() || undefined : undefined,
+
+      // Bill Payment
+      amount: newCategory === 'Bill Payment' ? (billAmount !== '' ? Number(billAmount) : undefined) : undefined,
+      recurring: newCategory === 'Bill Payment' ? billRecurring : undefined,
+      paymentMethod: newCategory === 'Bill Payment' ? billMethod.trim() || undefined : undefined,
+      lateFee: newCategory === 'Bill Payment' ? (billLateFee !== '' ? Number(billLateFee) : undefined) : undefined,
+      autoPay: newCategory === 'Bill Payment' ? billAutoPay : undefined,
       paymentType: newCategory === 'Bill Payment' ? paymentType : undefined,
-      cycleTime: (newCategory === 'Bill Payment' && paymentType === 'recurring') ? cycleTime : undefined
+      cycleTime: (newCategory === 'Bill Payment' && (paymentType === 'recurring' || billRecurring)) ? cycleTime : undefined,
+
+      // Shopping
+      store: newCategory === 'Shopping' ? shopStore.trim() || undefined : undefined,
+      items: newCategory === 'Shopping' ? shopItems.trim() || undefined : undefined,
+      budget: newCategory === 'Shopping' ? (shopBudget !== '' ? Number(shopBudget) : undefined) : undefined,
+
+      // Workout / Health & Fitness
+      workoutType: newCategory === 'Health & Fitness' ? workWorkoutType.trim() || undefined : undefined,
+      duration: newCategory === 'Health & Fitness' ? (workDuration !== '' ? Number(workDuration) : undefined) : undefined,
+      intensity: newCategory === 'Health & Fitness' ? workIntensity : undefined,
+      goal: newCategory === 'Health & Fitness' ? workGoal.trim() || undefined : undefined,
+      recovery: newCategory === 'Health & Fitness' ? (workRecovery !== '' ? Number(workRecovery) : undefined) : undefined,
+      sleep: newCategory === 'Health & Fitness' ? (workSleep !== '' ? Number(workSleep) : undefined) : undefined,
+
+      // Meeting
+      agenda: newCategory === 'Meeting' ? meetAgenda.trim() || undefined : undefined,
+      location: newCategory === 'Meeting' ? meetLocation.trim() || undefined : undefined,
+      participants: newCategory === 'Meeting' ? meetParticipants.trim() || undefined : undefined,
+      preparationTime: newCategory === 'Meeting' ? (meetPrepTime !== '' ? Number(meetPrepTime) : undefined) : undefined,
+      documents: newCategory === 'Meeting' ? meetDocuments.trim() || undefined : undefined,
+      travelTime: newCategory === 'Meeting' ? (meetTravelTime !== '' ? Number(meetTravelTime) : undefined) : undefined,
+
+      // Travel
+      destination: newCategory === 'Travel' ? travelDest.trim() || undefined : undefined,
+      departure: newCategory === 'Travel' ? travelDeparture || undefined : undefined,
+      packing: newCategory === 'Travel' ? travelPacking.trim() || undefined : undefined,
+      tickets: newCategory === 'Travel' ? travelTickets.trim() || undefined : undefined,
+      hotel: newCategory === 'Travel' ? travelHotel.trim() || undefined : undefined,
+      checklist: newCategory === 'Travel' ? travelChecklist.trim() || undefined : undefined,
+
+      // Custom
+      customNotes: newCategory === 'Custom' ? customNotes.trim() || undefined : undefined
     };
 
     setTasks(prev => {
       const updated = [...prev, newTask];
-      // Trigger API refresh after state updates
       setTimeout(refreshRisk, 50);
       return updated;
     });
@@ -110,19 +311,7 @@ export default function TasksView({
       }
     }
 
-    // Reset Form
-    setNewTitle('');
-    setNewHoursNeeded(8);
-    setNewPriority('medium');
-    setNewCategory('Assignment');
-    setPaymentType('one-time');
-    setCycleTime('Monthly');
-    setAddToGoogleTasks(false);
-
-    const tomorrow = new Date();
-    tomorrow.setHours(tomorrow.getHours() + 24);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    setNewDeadlineDate(`${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`);
+    resetMetadataForm();
   };
 
   // Save Task Edit
@@ -146,8 +335,62 @@ export default function TasksView({
             deadlineDate: newDeadlineDate,
             priority: newPriority,
             status: (t.hoursCompleted >= hoursNeededVal ? 'completed' : t.status === 'completed' ? 'todo' : t.status) as Task['status'],
+            
+            // Study
+            subject: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studySubject.trim() || undefined : undefined,
+            examDate: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyExamDate || undefined : undefined,
+            topics: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyTopics.trim() || undefined : undefined,
+            difficulty: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyDifficulty : undefined,
+            confidenceLevel: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyConfidence : undefined,
+            studyMaterial: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyMaterial.trim() || undefined : undefined,
+            revisionRequired: (newCategory === 'Study' || newCategory === 'Exam Prep') ? studyRevision : undefined,
+
+            // Assignment
+            course: newCategory === 'Assignment' ? assignCourse.trim() || undefined : undefined,
+            dependencies: newCategory === 'Assignment' ? assignDependencies.trim() || undefined : undefined,
+            referenceMaterial: newCategory === 'Assignment' ? assignRefMaterial.trim() || undefined : undefined,
+            submissionLink: newCategory === 'Assignment' ? assignSubLink.trim() || undefined : undefined,
+
+            // Bill Payment
+            amount: newCategory === 'Bill Payment' ? (billAmount !== '' ? Number(billAmount) : undefined) : undefined,
+            recurring: newCategory === 'Bill Payment' ? billRecurring : undefined,
+            paymentMethod: newCategory === 'Bill Payment' ? billMethod.trim() || undefined : undefined,
+            lateFee: newCategory === 'Bill Payment' ? (billLateFee !== '' ? Number(billLateFee) : undefined) : undefined,
+            autoPay: newCategory === 'Bill Payment' ? billAutoPay : undefined,
             paymentType: newCategory === 'Bill Payment' ? paymentType : undefined,
-            cycleTime: (newCategory === 'Bill Payment' && paymentType === 'recurring') ? cycleTime : undefined
+            cycleTime: (newCategory === 'Bill Payment' && (paymentType === 'recurring' || billRecurring)) ? cycleTime : undefined,
+
+            // Shopping
+            store: newCategory === 'Shopping' ? shopStore.trim() || undefined : undefined,
+            items: newCategory === 'Shopping' ? shopItems.trim() || undefined : undefined,
+            budget: newCategory === 'Shopping' ? (shopBudget !== '' ? Number(shopBudget) : undefined) : undefined,
+
+            // Workout / Health & Fitness
+            workoutType: newCategory === 'Health & Fitness' ? workWorkoutType.trim() || undefined : undefined,
+            duration: newCategory === 'Health & Fitness' ? (workDuration !== '' ? Number(workDuration) : undefined) : undefined,
+            intensity: newCategory === 'Health & Fitness' ? workIntensity : undefined,
+            goal: newCategory === 'Health & Fitness' ? workGoal.trim() || undefined : undefined,
+            recovery: newCategory === 'Health & Fitness' ? (workRecovery !== '' ? Number(workRecovery) : undefined) : undefined,
+            sleep: newCategory === 'Health & Fitness' ? (workSleep !== '' ? Number(workSleep) : undefined) : undefined,
+
+            // Meeting
+            agenda: newCategory === 'Meeting' ? meetAgenda.trim() || undefined : undefined,
+            location: newCategory === 'Meeting' ? meetLocation.trim() || undefined : undefined,
+            participants: newCategory === 'Meeting' ? meetParticipants.trim() || undefined : undefined,
+            preparationTime: newCategory === 'Meeting' ? (meetPrepTime !== '' ? Number(meetPrepTime) : undefined) : undefined,
+            documents: newCategory === 'Meeting' ? meetDocuments.trim() || undefined : undefined,
+            travelTime: newCategory === 'Meeting' ? (meetTravelTime !== '' ? Number(meetTravelTime) : undefined) : undefined,
+
+            // Travel
+            destination: newCategory === 'Travel' ? travelDest.trim() || undefined : undefined,
+            departure: newCategory === 'Travel' ? travelDeparture || undefined : undefined,
+            packing: newCategory === 'Travel' ? travelPacking.trim() || undefined : undefined,
+            tickets: newCategory === 'Travel' ? travelTickets.trim() || undefined : undefined,
+            hotel: newCategory === 'Travel' ? travelHotel.trim() || undefined : undefined,
+            checklist: newCategory === 'Travel' ? travelChecklist.trim() || undefined : undefined,
+
+            // Custom
+            customNotes: newCategory === 'Custom' ? customNotes.trim() || undefined : undefined
           };
         }
         return t;
@@ -156,19 +399,8 @@ export default function TasksView({
       return updated;
     });
 
-    // Reset state
     setEditingTaskId(null);
-    setNewTitle('');
-    setNewHoursNeeded(8);
-    setNewPriority('medium');
-    setNewCategory('Assignment');
-    setPaymentType('one-time');
-    setCycleTime('Monthly');
-
-    const tomorrow = new Date();
-    tomorrow.setHours(tomorrow.getHours() + 24);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    setNewDeadlineDate(`${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`);
+    resetMetadataForm();
   };
 
   // Select Task to Edit
@@ -178,8 +410,56 @@ export default function TasksView({
     setNewCategory(task.category);
     setNewHoursNeeded(task.hoursNeeded);
     setNewPriority(task.priority);
-    setPaymentType(task.paymentType || 'one-time');
+    setIsAutoDetected(false);
+
+    // Populate metadata fields
+    setStudySubject(task.subject || '');
+    setStudyExamDate(task.examDate || '');
+    setStudyTopics(task.topics || '');
+    setStudyDifficulty(task.difficulty || 'medium');
+    setStudyConfidence(task.confidenceLevel || 'medium');
+    setStudyMaterial(task.studyMaterial || '');
+    setStudyRevision(task.revisionRequired || false);
+
+    setAssignCourse(task.course || '');
+    setAssignDependencies(task.dependencies || '');
+    setAssignRefMaterial(task.referenceMaterial || '');
+    setAssignSubLink(task.submissionLink || '');
+
+    setBillAmount(task.amount !== undefined ? task.amount : '');
+    setBillRecurring(task.recurring || false);
+    setBillMethod(task.paymentMethod || '');
+    setBillLateFee(task.lateFee !== undefined ? task.lateFee : '');
+    setBillAutoPay(task.autoPay || false);
+    setPaymentType(task.paymentType || (task.recurring ? 'recurring' : 'one-time'));
     setCycleTime(task.cycleTime || 'Monthly');
+
+    setShopStore(task.store || '');
+    setShopItems(task.items || '');
+    setShopBudget(task.budget !== undefined ? task.budget : '');
+
+    setWorkWorkoutType(task.workoutType || '');
+    setWorkDuration(task.duration !== undefined ? task.duration : '');
+    setWorkIntensity(task.intensity || 'medium');
+    setWorkGoal(task.goal || '');
+    setWorkRecovery(task.recovery !== undefined ? task.recovery : '');
+    setWorkSleep(task.sleep !== undefined ? task.sleep : '');
+
+    setMeetAgenda(task.agenda || '');
+    setMeetLocation(task.location || '');
+    setMeetParticipants(task.participants || '');
+    setMeetPrepTime(task.preparationTime !== undefined ? task.preparationTime : '');
+    setMeetDocuments(task.documents || '');
+    setMeetTravelTime(task.travelTime !== undefined ? task.travelTime : '');
+
+    setTravelDest(task.destination || '');
+    setTravelDeparture(task.departure || '');
+    setTravelPacking(task.packing || '');
+    setTravelTickets(task.tickets || '');
+    setTravelHotel(task.hotel || '');
+    setTravelChecklist(task.checklist || '');
+
+    setCustomNotes(task.customNotes || '');
 
     if (task.deadlineDate) {
       setNewDeadlineDate(task.deadlineDate);
@@ -187,24 +467,14 @@ export default function TasksView({
       const dt = new Date();
       dt.setMinutes(dt.getMinutes() + Math.round(task.deadlineHours * 60));
       const pad = (n: number) => String(n).padStart(2, '0');
-      setNewDeadlineDate(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
+      setNewDeadlineDate(`${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${dt.getDate()}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`);
     }
   };
 
   // Cancel edit mode
   const handleCancelEdit = () => {
     setEditingTaskId(null);
-    setNewTitle('');
-    setNewHoursNeeded(8);
-    setNewPriority('medium');
-    setNewCategory('Assignment');
-    setPaymentType('one-time');
-    setCycleTime('Monthly');
-
-    const tomorrow = new Date();
-    tomorrow.setHours(tomorrow.getHours() + 24);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    setNewDeadlineDate(`${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}T${pad(tomorrow.getHours())}:${pad(tomorrow.getMinutes())}`);
+    resetMetadataForm();
   };
 
   // Delete Task
@@ -256,7 +526,21 @@ export default function TasksView({
   };
 
   // Get categories and items for filters
-  const categories = ['All', 'Assignment', 'Exam Prep', 'Meeting', 'Work', 'Personal', 'Bill Payment'];
+  const categories = [
+    'All',
+    'Study',
+    'Work',
+    'Assignment',
+    'Meeting',
+    'Bill Payment',
+    'Health & Fitness',
+    'Shopping',
+    'Travel',
+    'Household',
+    'Personal Goal',
+    'Habit',
+    'Custom'
+  ];
   const priorities = ['All', 'high', 'medium', 'low'];
 
   // Filter tasks
@@ -422,13 +706,24 @@ export default function TasksView({
           <form onSubmit={editingTaskId ? handleSaveEdit : handleAddTask} className="space-y-4">
             {/* Title */}
             <div className="space-y-2">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Objective Title</label>
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Objective Title</label>
+                {isAutoDetected && (
+                  <motion.span 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/20 text-emerald-400 font-mono flex items-center gap-1 font-semibold"
+                  >
+                    ✨ Auto-categorized
+                  </motion.span>
+                )}
+              </div>
               <input
                 type="text"
                 required
                 value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. Physics Lab Report"
+                onChange={(e) => handleTitleChange(e.target.value)}
+                placeholder="e.g. Pay electricity bill tomorrow"
                 className="w-full bg-[#0B1020] border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500/50 transition-colors"
               />
             </div>
@@ -439,15 +734,24 @@ export default function TasksView({
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">Category</label>
                 <select
                   value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value as Task['category'])}
+                  onChange={(e) => {
+                    setNewCategory(e.target.value as TaskCategory);
+                    setIsAutoDetected(false); // Overridden manually
+                  }}
                   className="w-full bg-[#0B1020] border border-white/5 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer"
                 >
+                  <option value="Study">📚 Study</option>
+                  <option value="Work">💼 Work</option>
                   <option value="Assignment">📝 Assignment</option>
-                  <option value="Exam Prep">📚 Exam Prep</option>
-                  <option value="Meeting">💼 Meeting</option>
-                  <option value="Work">🏢 Work</option>
-                  <option value="Personal">🏠 Personal</option>
+                  <option value="Meeting">📅 Meeting</option>
                   <option value="Bill Payment">💳 Bill Payment</option>
+                  <option value="Health & Fitness">🏋 Health & Fitness</option>
+                  <option value="Shopping">🛒 Shopping</option>
+                  <option value="Travel">✈ Travel</option>
+                  <option value="Household">🏠 Household</option>
+                  <option value="Personal Goal">🎯 Personal Goal</option>
+                  <option value="Habit">💡 Habit</option>
+                  <option value="Custom">➕ Custom</option>
                 </select>
               </div>
 
@@ -466,6 +770,492 @@ export default function TasksView({
               </div>
             </div>
 
+            {/* Adaptive Smart Twin Metadata Section */}
+            <motion.div
+              key={newCategory}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+              className="p-3.5 bg-[#0B1020]/50 rounded-xl border border-white/5 space-y-3 mt-3"
+            >
+              <div className="flex justify-between items-center pb-1 border-b border-white/5">
+                <span className="text-[9px] font-bold text-blue-400 uppercase tracking-widest font-mono">
+                  Adaptive Fields: {newCategory}
+                </span>
+                <span className="text-[8px] text-slate-500 font-mono">Twin Rec Option</span>
+              </div>
+
+              {/* Study Category */}
+              {(newCategory === 'Study' || newCategory === 'Exam Prep') && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Subject</label>
+                      <input
+                        type="text"
+                        value={studySubject}
+                        onChange={(e) => setStudySubject(e.target.value)}
+                        placeholder="e.g., Mathematics"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Exam Date</label>
+                      <input
+                        type="date"
+                        value={studyExamDate}
+                        onChange={(e) => setStudyExamDate(e.target.value)}
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-slate-400 font-mono">Core Topics</label>
+                    <input
+                      type="text"
+                      value={studyTopics}
+                      onChange={(e) => setStudyTopics(e.target.value)}
+                      placeholder="e.g., Fourier Transform, Calculus"
+                      className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Difficulty</label>
+                      <select
+                        value={studyDifficulty}
+                        onChange={(e) => setStudyDifficulty(e.target.value as any)}
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+                      >
+                        <option value="easy">🟢 Easy</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="hard">🔴 Hard</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Confidence Level</label>
+                      <select
+                        value={studyConfidence}
+                        onChange={(e) => setStudyConfidence(e.target.value as any)}
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+                      >
+                        <option value="low">🔴 Low Confidence</option>
+                        <option value="medium">🟡 Medium</option>
+                        <option value="high">🟢 High Confidence</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 pt-1">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Primary Material</label>
+                      <input
+                        type="text"
+                        value={studyMaterial}
+                        onChange={(e) => setStudyMaterial(e.target.value)}
+                        placeholder="e.g., Textbook chapter 4 & Lecture notes"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-[10px] text-slate-300 cursor-pointer select-none py-1">
+                      <input
+                        type="checkbox"
+                        checked={studyRevision}
+                        onChange={(e) => setStudyRevision(e.target.checked)}
+                        className="rounded border-white/10 bg-[#0B1020] text-blue-500 focus:ring-0"
+                      />
+                      Schedule Revision Sessions before deadline
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Assignment Category */}
+              {newCategory === 'Assignment' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Course / Subject</label>
+                      <input
+                        type="text"
+                        value={assignCourse}
+                        onChange={(e) => setAssignCourse(e.target.value)}
+                        placeholder="e.g., CS 301"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Submission Link</label>
+                      <input
+                        type="text"
+                        value={assignSubLink}
+                        onChange={(e) => setAssignSubLink(e.target.value)}
+                        placeholder="e.g., Canvas submission URL"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Reference Material</label>
+                      <input
+                        type="text"
+                        value={assignRefMaterial}
+                        onChange={(e) => setAssignRefMaterial(e.target.value)}
+                        placeholder="e.g., Slides, Rubric"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Prerequisites / Blockers</label>
+                      <input
+                        type="text"
+                        value={assignDependencies}
+                        onChange={(e) => setAssignDependencies(e.target.value)}
+                        placeholder="e.g., Lab 2, API spec"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bill Payment Category */}
+              {newCategory === 'Bill Payment' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Bill Amount ($)</label>
+                      <input
+                        type="number"
+                        value={billAmount}
+                        onChange={(e) => setBillAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 120"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Estimated Late Fee ($)</label>
+                      <input
+                        type="number"
+                        value={billLateFee}
+                        onChange={(e) => setBillLateFee(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 15"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-slate-400 font-mono">Payment Method</label>
+                    <input
+                      type="text"
+                      value={billMethod}
+                      onChange={(e) => setBillMethod(e.target.value)}
+                      placeholder="e.g., Bank Autopay, Chase card"
+                      className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-4 pt-1">
+                    <label className="flex items-center gap-1.5 text-[10px] text-slate-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={billAutoPay}
+                        onChange={(e) => setBillAutoPay(e.target.checked)}
+                        className="rounded border-white/10 bg-[#0B1020] text-amber-500 focus:ring-0"
+                      />
+                      Auto Pay Enabled
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[10px] text-slate-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={billRecurring}
+                        onChange={(e) => {
+                          setBillRecurring(e.target.checked);
+                          if (e.target.checked) setPaymentType('recurring');
+                        }}
+                        className="rounded border-white/10 bg-[#0B1020] text-amber-500 focus:ring-0"
+                      />
+                      Recurring Payment
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Shopping Category */}
+              {newCategory === 'Shopping' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Store / Vendor</label>
+                      <input
+                        type="text"
+                        value={shopStore}
+                        onChange={(e) => setShopStore(e.target.value)}
+                        placeholder="e.g., Costco, Amazon"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Total Budget ($)</label>
+                      <input
+                        type="number"
+                        value={shopBudget}
+                        onChange={(e) => setShopBudget(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 75"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-slate-400 font-mono">Target Items List</label>
+                    <input
+                      type="text"
+                      value={shopItems}
+                      onChange={(e) => setShopItems(e.target.value)}
+                      placeholder="e.g., Vegetables, Paper towels, Milk"
+                      className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Health & Fitness Category */}
+              {newCategory === 'Health & Fitness' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Workout / Sport Type</label>
+                      <input
+                        type="text"
+                        value={workWorkoutType}
+                        onChange={(e) => setWorkWorkoutType(e.target.value)}
+                        placeholder="e.g., HIIT, Strength, Swimming"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Target Duration (mins)</label>
+                      <input
+                        type="number"
+                        value={workDuration}
+                        onChange={(e) => setWorkDuration(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 45"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Intensity Level</label>
+                      <select
+                        value={workIntensity}
+                        onChange={(e) => setWorkIntensity(e.target.value as any)}
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+                      >
+                        <option value="low">🟢 Light / Recovery</option>
+                        <option value="medium">🟡 Moderate Effort</option>
+                        <option value="high">🔴 High / Heavy Lift</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Recovery Score (%)</label>
+                      <input
+                        type="number"
+                        value={workRecovery}
+                        onChange={(e) => setWorkRecovery(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 78"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1 col-span-2">
+                      <label className="text-[9px] text-slate-400 font-mono">Core Training Goal</label>
+                      <input
+                        type="text"
+                        value={workGoal}
+                        onChange={(e) => setWorkGoal(e.target.value)}
+                        placeholder="e.g., Cardio endurance & Core strengthening"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Meeting Category */}
+              {newCategory === 'Meeting' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Agenda Summary</label>
+                      <input
+                        type="text"
+                        value={meetAgenda}
+                        onChange={(e) => setMeetAgenda(e.target.value)}
+                        placeholder="e.g., Q3 Planning Session"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Location / Link</label>
+                      <input
+                        type="text"
+                        value={meetLocation}
+                        onChange={(e) => setMeetLocation(e.target.value)}
+                        placeholder="e.g., Google Meet / Room 3B"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Participants</label>
+                      <input
+                        type="text"
+                        value={meetParticipants}
+                        onChange={(e) => setMeetParticipants(e.target.value)}
+                        placeholder="e.g., Sarah, Dave, David"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Prep Required (hours)</label>
+                      <input
+                        type="number"
+                        value={meetPrepTime}
+                        onChange={(e) => setMeetPrepTime(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 1.5"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Attached Documents</label>
+                      <input
+                        type="text"
+                        value={meetDocuments}
+                        onChange={(e) => setMeetDocuments(e.target.value)}
+                        placeholder="e.g., slide_deck_v1.pdf"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Travel / Transit Time (mins)</label>
+                      <input
+                        type="number"
+                        value={meetTravelTime}
+                        onChange={(e) => setMeetTravelTime(e.target.value === '' ? '' : Number(e.target.value))}
+                        placeholder="e.g., 20"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Travel Category */}
+              {newCategory === 'Travel' && (
+                <div className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Destination</label>
+                      <input
+                        type="text"
+                        value={travelDest}
+                        onChange={(e) => setTravelDest(e.target.value)}
+                        placeholder="e.g., Paris, France"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Departure Date</label>
+                      <input
+                        type="date"
+                        value={travelDeparture}
+                        onChange={(e) => setTravelDeparture(e.target.value)}
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Tickets / Booking Ref</label>
+                      <input
+                        type="text"
+                        value={travelTickets}
+                        onChange={(e) => setTravelTickets(e.target.value)}
+                        placeholder="e.g., Flight AirFrance AF-015"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Hotel / Stay Location</label>
+                      <input
+                        type="text"
+                        value={travelHotel}
+                        onChange={(e) => setTravelHotel(e.target.value)}
+                        placeholder="e.g., Hilton Opera Paris"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Packing Essentials List</label>
+                      <input
+                        type="text"
+                        value={travelPacking}
+                        onChange={(e) => setTravelPacking(e.target.value)}
+                        placeholder="e.g., Passports, Adaptor, Medication"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-slate-400 font-mono">Travel Checklist</label>
+                      <input
+                        type="text"
+                        value={travelChecklist}
+                        onChange={(e) => setTravelChecklist(e.target.value)}
+                        placeholder="e.g., Check-in online, exchange EUR"
+                        className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Category */}
+              {newCategory === 'Custom' && (
+                <div className="space-y-1">
+                  <label className="text-[9px] text-slate-400 font-mono">Advanced Notes & Logic Parameters</label>
+                  <textarea
+                    rows={2}
+                    value={customNotes}
+                    onChange={(e) => setCustomNotes(e.target.value)}
+                    placeholder="Enter custom context or instructions for your digital twin..."
+                    className="w-full bg-[#171F34] border border-white/5 rounded-md p-2.5 text-xs text-slate-200 focus:outline-none resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Work / Household / Personal Goal / Habit Categories */}
+              {(newCategory === 'Work' || newCategory === 'Household' || newCategory === 'Personal Goal' || newCategory === 'Habit') && (
+                <div className="space-y-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-slate-400 font-mono">Category Context & Reference Note</label>
+                    <input
+                      type="text"
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      placeholder={`Provide specific background context for this ${newCategory} task...`}
+                      className="w-full bg-[#171F34] border border-white/5 rounded-md px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
             <div className="grid grid-cols-1 gap-4">
               {/* Hours needed (Hidden for Bill Payment category) */}
               {newCategory !== 'Bill Payment' && (
@@ -482,56 +1272,6 @@ export default function TasksView({
                     />
                     <Clock className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                   </div>
-                </div>
-              )}
-
-              {/* Payment Type Options (Shown only for Bill Payment) */}
-              {newCategory === 'Bill Payment' && (
-                <div className="space-y-3 p-3.5 bg-[#0B1020]/40 rounded-xl border border-white/5">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Payment Type</label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="paymentType"
-                          value="one-time"
-                          checked={paymentType === 'one-time'}
-                          onChange={() => setPaymentType('one-time')}
-                          className="accent-blue-500"
-                        />
-                        One-time Payment
-                      </label>
-                      <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
-                        <input
-                          type="radio"
-                          name="paymentType"
-                          value="recurring"
-                          checked={paymentType === 'recurring'}
-                          onChange={() => setPaymentType('recurring')}
-                          className="accent-blue-500"
-                        />
-                        Recurring Payment
-                      </label>
-                    </div>
-                  </div>
-
-                  {paymentType === 'recurring' && (
-                    <div className="space-y-1.5 pt-2 border-t border-white/5">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Cycle Time</label>
-                      <select
-                        value={cycleTime}
-                        onChange={(e) => setCycleTime(e.target.value)}
-                        className="w-full bg-[#0B1020] border border-white/5 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer"
-                      >
-                        <option value="Weekly">Weekly</option>
-                        <option value="Bi-weekly">Bi-weekly</option>
-                        <option value="Monthly">Monthly</option>
-                        <option value="Quarterly">Quarterly</option>
-                        <option value="Yearly">Yearly</option>
-                      </select>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -656,16 +1396,18 @@ export default function TasksView({
                 <p className="text-xs text-slate-500 font-sans mt-2">No matching entries found.</p>
               </div>
             ) : (
-              filteredTasks.map((task) => (
-                <div
-                  key={task.id}
+              filteredTasks.map((taskItem) => {
+                const task = taskItem as any;
+                return (
+                  <div
+                    key={task.id}
                   className="bg-[#0B1020]/30 border border-white/5 hover:border-white/10 rounded-xl p-3.5 flex items-center justify-between gap-4 group"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="flex items-start gap-3.5 min-w-0 flex-1">
                     {/* Checkbox */}
                     <button
                       onClick={() => handleToggleCompleted(task.id)}
-                      className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-all ${
+                      className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
                         task.status === 'completed'
                           ? 'bg-emerald-500/25 border-emerald-500 text-emerald-400'
                           : 'border-slate-700 hover:border-slate-500 text-transparent hover:text-slate-500'
@@ -675,7 +1417,7 @@ export default function TasksView({
                     </button>
 
                     {/* Meta info */}
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className={`text-sm font-medium truncate ${
                         task.status === 'completed' ? 'text-slate-500 line-through' : 'text-slate-200'
                       }`}>
@@ -706,6 +1448,102 @@ export default function TasksView({
                           </span>
                         )}
                       </div>
+
+                      {/* Adaptive Twin Meta-Panel inside Task Card */}
+                      {(task.subject || task.course || task.amount !== undefined || task.store || task.workoutType || task.agenda || task.destination || task.customNotes) && (
+                        <div className="mt-2.5 p-2 bg-slate-900/50 border border-white/5 rounded-lg text-[11px] space-y-1.5">
+                          {/* Study/Exam Meta */}
+                          {(task.category === 'Study' || task.category === 'Exam Prep') && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.subject && <div><span className="text-slate-500">Subject:</span> {task.subject}</div>}
+                              {task.examDate && <div><span className="text-slate-500">Exam:</span> {task.examDate}</div>}
+                              {task.topics && <div className="col-span-2"><span className="text-slate-500">Topics:</span> {task.topics}</div>}
+                              {task.difficulty && <div><span className="text-slate-500">Diff:</span> {task.difficulty === 'easy' ? '🟢 Easy' : task.difficulty === 'medium' ? '🟡 Medium' : '🔴 Hard'}</div>}
+                              {task.confidenceLevel && <div><span className="text-slate-500">Confidence:</span> {task.confidenceLevel === 'high' ? '🟢 High' : task.confidenceLevel === 'medium' ? '🟡 Med' : '🔴 Low'}</div>}
+                              {task.studyMaterial && <div className="col-span-2"><span className="text-slate-500">Materials:</span> {task.studyMaterial}</div>}
+                              {task.revisionRequired && <div className="col-span-2 text-emerald-400 font-semibold">🔄 Pre-exam revisions scheduled</div>}
+                            </div>
+                          )}
+
+                          {/* Assignment Meta */}
+                          {task.category === 'Assignment' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.course && <div><span className="text-slate-500">Course:</span> {task.course}</div>}
+                              {task.submissionLink && (
+                                <div className="truncate">
+                                  <span className="text-slate-500">Portal:</span>{' '}
+                                  <a href={task.submissionLink} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                                    Link ↗
+                                  </a>
+                                </div>
+                              )}
+                              {task.referenceMaterial && <div className="col-span-2"><span className="text-slate-500">References:</span> {task.referenceMaterial}</div>}
+                              {task.dependencies && <div className="col-span-2 text-amber-400"><span className="text-slate-500">Blockers:</span> {task.dependencies}</div>}
+                            </div>
+                          )}
+
+                          {/* Bill Payment Meta */}
+                          {task.category === 'Bill Payment' && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.amount !== undefined && <div><span className="text-slate-500">Amount:</span> <strong className="text-emerald-400">${task.amount}</strong></div>}
+                              {task.lateFee !== undefined && <div><span className="text-slate-500">Late Fee:</span> <span className="text-red-400">${task.lateFee}</span></div>}
+                              {task.paymentMethod && <div className="col-span-2"><span className="text-slate-500">Method:</span> {task.paymentMethod}</div>}
+                              {task.autoPay && <div className="col-span-2 text-amber-400 font-medium">⚡ Autopay setup in banking portal</div>}
+                            </div>
+                          )}
+
+                          {/* Shopping Meta */}
+                          {task.category === 'Shopping' && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.store && <div><span className="text-slate-500">Store:</span> {task.store}</div>}
+                              {task.budget !== undefined && <div><span className="text-slate-500">Budget:</span> <strong className="text-emerald-400">${task.budget}</strong></div>}
+                              {task.items && <div className="col-span-2"><span className="text-slate-500">List:</span> <span className="text-slate-300">{task.items}</span></div>}
+                            </div>
+                          )}
+
+                          {/* Health & Fitness Meta */}
+                          {task.category === 'Health & Fitness' && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.workoutType && <div><span className="text-slate-500">Workout:</span> {task.workoutType}</div>}
+                              {task.duration && <div><span className="text-slate-500">Duration:</span> {task.duration}m</div>}
+                              {task.intensity && <div><span className="text-slate-500">Intensity:</span> {task.intensity === 'high' ? '🔴 High' : task.intensity === 'medium' ? '🟡 Moderate' : '🟢 Recovery'}</div>}
+                              {task.recovery && <div><span className="text-slate-500">Body Recovery:</span> <strong className="text-blue-400">{task.recovery}%</strong></div>}
+                              {task.goal && <div className="col-span-2"><span className="text-slate-500">Objective:</span> {task.goal}</div>}
+                            </div>
+                          )}
+
+                          {/* Meeting Meta */}
+                          {task.category === 'Meeting' && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.agenda && <div className="col-span-2"><span className="text-slate-500">Agenda:</span> {task.agenda}</div>}
+                              {task.location && <div><span className="text-slate-500">Where:</span> {task.location}</div>}
+                              {task.participants && <div><span className="text-slate-500">With:</span> {task.participants}</div>}
+                              {task.preparationTime && <div><span className="text-slate-500">Prep Required:</span> {task.preparationTime}h</div>}
+                              {task.travelTime && <div><span className="text-slate-500">Transit:</span> {task.travelTime}m</div>}
+                              {task.documents && <div className="col-span-2"><span className="text-slate-500">Attachments:</span> 📄 {task.documents}</div>}
+                            </div>
+                          )}
+
+                          {/* Travel Meta */}
+                          {task.category === 'Travel' && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                              {task.destination && <div><span className="text-slate-500">Dest:</span> {task.destination}</div>}
+                              {task.departure && <div><span className="text-slate-500">Depart:</span> {task.departure}</div>}
+                              {task.hotel && <div className="col-span-2"><span className="text-slate-500">Stay:</span> {task.hotel}</div>}
+                              {task.tickets && <div className="col-span-2"><span className="text-slate-500">Tickets/Ref:</span> {task.tickets}</div>}
+                              {task.packing && <div className="col-span-2"><span className="text-slate-500">Pack:</span> {task.packing}</div>}
+                              {task.checklist && <div className="col-span-2 text-blue-300 font-medium">📋 {task.checklist}</div>}
+                            </div>
+                          )}
+
+                          {/* Other custom context notes */}
+                          {task.customNotes && (
+                            <div className="text-slate-300 text-[11px]">
+                              <span className="text-slate-500">Digital Twin Note:</span> {task.customNotes}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -789,7 +1627,8 @@ export default function TasksView({
                     </button>
                   </div>
                 </div>
-              ))
+              );
+            })
             )}
           </div>
         </div>
