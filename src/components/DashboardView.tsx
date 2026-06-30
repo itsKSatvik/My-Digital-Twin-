@@ -484,6 +484,223 @@ export default function DashboardView({
                 const isActiveFocus = task.id === activeFocusTaskId;
                 const riskDetails = getTaskRiskDetails(task.id);
                 
+                // 1. Bill Payment Specific Card
+                if (task.category === 'Bill Payment') {
+                  const amount = task.amount || 1450;
+                  const lateFee = task.lateFee || 50;
+                  const dueDateText = task.dueDate ? `Due ${task.dueDate}` : 'Due Tomorrow';
+                  const billName = task.title || 'Electricity Bill';
+
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => setActiveFocusTaskId(task.id)}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        isActiveFocus 
+                          ? 'bg-brand-card-light border-indigo-500/35 shadow-md' 
+                          : 'bg-brand-bg-inner/20 border-brand-border hover:border-brand-accent/20'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center gap-2.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs">💳</span>
+                            <h3 className="text-xs font-semibold text-brand-text truncate">
+                              {billName}
+                            </h3>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            <span className="text-xs font-extrabold text-indigo-400 font-mono">₹{amount}</span>
+                            <span className="text-[10px] text-brand-text-muted font-sans font-medium">{dueDateText}</span>
+                          </div>
+
+                          <p className="text-[9px] text-rose-400/95 font-medium font-sans flex items-center gap-1 mt-0.5">
+                            <AlertTriangle className="w-2.5 h-2.5 text-rose-400 shrink-0" /> ₹{lateFee}/day late fee
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                          {onDelayTask && (
+                            <button
+                              onClick={() => onDelayTask(task.id)}
+                              title="Delay Task (Twin Recalibration)"
+                              className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                            >
+                              <Clock className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleToggleCompleted(task.id)}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/20 text-emerald-400 hover:text-white"
+                          >
+                            Pay Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 2. Meeting Specific Card
+                if (task.category === 'Meeting') {
+                  const meetingTitle = task.title || 'Team Meeting';
+                  const locationText = task.location || 'Conference Room A';
+                  
+                  // Custom timing representation
+                  let timingText = 'Tomorrow 10:00 AM';
+                  if (task.deadlineHours < 24) {
+                    timingText = `Today at ${new Date(Date.now() + task.deadlineHours * 3600000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                  }
+
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => setActiveFocusTaskId(task.id)}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        isActiveFocus 
+                          ? 'bg-brand-card-light border-indigo-500/35 shadow-md' 
+                          : 'bg-brand-bg-inner/20 border-brand-border hover:border-brand-accent/20'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center gap-2.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs">💼</span>
+                            <h3 className="text-xs font-semibold text-brand-text truncate">
+                              {meetingTitle}
+                            </h3>
+                          </div>
+                          
+                          <p className="text-[10px] font-semibold text-emerald-400 font-sans mt-0.5">
+                            {timingText}
+                          </p>
+
+                          <p className="text-[9px] text-brand-text-muted font-sans mt-0.5 truncate">
+                            📍 {locationText}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                          {onDelayTask && (
+                            <button
+                              onClick={() => onDelayTask(task.id)}
+                              title="Delay Task (Twin Recalibration)"
+                              className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                            >
+                              <Clock className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setActiveFocusTaskId(task.id);
+                            }}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all cursor-pointer bg-[#312E81]/30 hover:bg-indigo-600 border border-indigo-500/20 text-indigo-400 hover:text-white"
+                          >
+                            Prepare
+                          </button>
+                          <button
+                            onClick={() => handleToggleCompleted(task.id)}
+                            className="w-7 h-7 rounded-lg bg-brand-bg-inner/80 hover:bg-emerald-500/15 border border-brand-border text-brand-text-muted hover:text-emerald-500 transition-all flex items-center justify-center cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 3. Study / Exam Prep / Assignment Specific Card
+                if (task.category === 'Study' || task.category === 'Exam Prep' || task.category === 'Assignment') {
+                  const isHighRisk = riskDetails.riskLevel === 'high';
+                  const isMediumRisk = riskDetails.riskLevel === 'medium';
+                  const isStudy = task.category === 'Study' || task.category === 'Exam Prep';
+                  
+                  let subtext = 'Exam Tomorrow';
+                  if (task.category === 'Assignment') {
+                    subtext = task.dependencies ? `Blocked by: ${task.dependencies}` : 'Due Tomorrow';
+                  } else if (task.examDate) {
+                    subtext = `Exam on ${task.examDate}`;
+                  }
+
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => setActiveFocusTaskId(task.id)}
+                      className={`p-2.5 rounded-xl border transition-all cursor-pointer ${
+                        isActiveFocus 
+                          ? 'bg-brand-card-light border-indigo-500/35 shadow-md' 
+                          : 'bg-brand-bg-inner/20 border-brand-border hover:border-brand-accent/20'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center gap-2.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs">{isStudy ? '📚' : '📝'}</span>
+                            <h3 className="text-xs font-semibold text-brand-text truncate">
+                              {task.title}
+                            </h3>
+                          </div>
+                          
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
+                              isHighRisk 
+                                ? 'bg-rose-500/15 text-rose-400 border border-rose-500/10' 
+                                : isMediumRisk 
+                                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/10' 
+                                  : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/10'
+                            }`}>
+                              {riskDetails.riskLevel.toUpperCase()} RISK
+                            </span>
+                            <span className="text-[10px] text-brand-text-muted font-sans font-medium">{subtext}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                          {onDelayTask && (
+                            <button
+                              onClick={() => onDelayTask(task.id)}
+                              title="Delay Task (Twin Recalibration)"
+                              className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
+                            >
+                              <Clock className="w-3 h-3" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleToggleTracking(task.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wider uppercase transition-all flex items-center gap-1 cursor-pointer ${
+                              task.isTracking 
+                                ? 'bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 animate-pulse' 
+                                : 'bg-brand-accent/10 hover:bg-brand-accent border border-brand-accent/15 text-brand-accent hover:text-white'
+                            }`}
+                          >
+                            {task.isTracking ? 'Pause' : 'Resume'}
+                          </button>
+                          <button
+                            onClick={() => handleToggleCompleted(task.id)}
+                            className="w-7 h-7 rounded-lg bg-brand-bg-inner/80 hover:bg-emerald-500/15 border border-brand-border text-brand-text-muted hover:text-emerald-500 transition-all flex items-center justify-center cursor-pointer"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // 4. Fallback Default Category Card
+                const emojiMap: Record<string, string> = {
+                  'Health & Fitness': '🏋',
+                  'Shopping': '🛒',
+                  'Travel': '✈',
+                  'Household': '🏠',
+                  'Personal Goal': '🎯',
+                  'Habit': '💡',
+                  'Custom': '➕',
+                };
+                const emoji = emojiMap[task.category] || '🎯';
+
                 return (
                   <div
                     key={task.id}
@@ -494,61 +711,26 @@ export default function DashboardView({
                         : 'bg-brand-bg-inner/20 border-brand-border hover:border-brand-accent/20'
                     }`}
                   >
-                    <div className="flex justify-between items-start gap-2.5">
+                    <div className="flex justify-between items-center gap-2.5">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 flex-wrap">
-                          <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                            task.priority === 'high' 
-                              ? 'bg-rose-500/15 text-rose-400' 
-                              : task.priority === 'medium' 
-                                ? 'bg-amber-500/15 text-amber-400' 
-                                : 'bg-slate-700/30 text-slate-400'
-                          }`}>
-                            {task.priority.toUpperCase()}
-                          </span>
-                          <span className="text-[9px] font-medium text-brand-text-muted font-sans">{task.category}</span>
-                          
-                          {/* Task-Level Risk Level Badge */}
-                          <span className={`text-[9px] font-bold font-mono px-1.5 py-0.5 rounded ${
-                            riskDetails.riskLevel === 'high' 
-                              ? 'bg-rose-600/20 text-rose-400 border border-rose-500/20 animate-pulse' 
-                              : riskDetails.riskLevel === 'medium' 
-                                ? 'bg-amber-600/20 text-amber-400' 
-                                : 'bg-emerald-600/20 text-emerald-400'
-                          }`}>
-                            {riskDetails.riskLevel.toUpperCase()} RISK
-                          </span>
+                          <span className="text-xs">{emoji}</span>
+                          <h3 className="text-xs font-semibold text-brand-text truncate">
+                            {task.title}
+                          </h3>
                         </div>
-
-                        <h3 className={`text-xs font-semibold mt-1 ${task.status === 'completed' ? 'text-brand-text-muted line-through opacity-80' : 'text-brand-text'}`}>
-                          {task.title}
-                        </h3>
-
-                        {/* Task Risk Explanation */}
-                        {task.status !== 'completed' && (
-                          <p className={`text-[9px] mt-0.5 font-sans leading-normal ${
-                            riskDetails.riskLevel === 'high' 
-                              ? 'text-rose-400/95 font-medium' 
-                              : riskDetails.riskLevel === 'medium' 
-                                ? 'text-amber-400/95' 
-                                : 'text-slate-400/80'
-                          }`}>
-                            ⚠️ {riskDetails.explanation}
-                          </p>
-                        )}
-
-                        <div className="mt-2 flex items-center gap-2">
-                          {renderBlockBar(task.hoursCompleted, task.hoursNeeded)}
-                          <span className="text-[10px] text-brand-text-muted font-mono">
-                            {task.hoursCompleted.toFixed(1)}/{task.hoursNeeded}h ({task.deadlineHours.toFixed(1)}h left)
+                        
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-brand-text-muted font-sans font-medium">
+                            Priority: <span className="capitalize font-semibold text-brand-accent">{task.priority}</span>
                           </span>
+                          <span className="text-[10px] text-brand-text-muted font-mono">• {task.deadlineHours.toFixed(0)}h left</span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                        {task.status !== 'completed' && onDelayTask && (
+                        {onDelayTask && (
                           <button
-                            id={`delay-task-${task.id}`}
                             onClick={() => onDelayTask(task.id)}
                             title="Delay Task (Twin Recalibration)"
                             className="w-7 h-7 rounded-lg bg-amber-500/10 hover:bg-amber-500 border border-amber-500/15 hover:border-amber-500 text-amber-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
@@ -556,25 +738,19 @@ export default function DashboardView({
                             <Clock className="w-3 h-3" />
                           </button>
                         )}
-                        {task.status !== 'completed' && (
-                          <button
-                            onClick={() => handleToggleTracking(task.id)}
-                            className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
-                              task.isTracking 
-                                ? 'bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 animate-pulse' 
-                                : 'bg-brand-accent/10 hover:bg-brand-accent border border-brand-accent/15 text-brand-accent hover:text-white'
-                            }`}
-                          >
-                            {task.isTracking ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleToggleTracking(task.id)}
+                          className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
+                            task.isTracking 
+                              ? 'bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 animate-pulse' 
+                              : 'bg-brand-accent/10 hover:bg-brand-accent border border-brand-accent/15 text-brand-accent hover:text-white'
+                          }`}
+                        >
+                          {task.isTracking ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3 fill-current" />}
+                        </button>
                         <button
                           onClick={() => handleToggleCompleted(task.id)}
-                          className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer ${
-                            task.status === 'completed' 
-                              ? 'bg-emerald-500 text-white shadow-sm border-0' 
-                              : 'bg-brand-bg-inner/80 hover:bg-emerald-500/15 border border-brand-border text-brand-text-muted hover:text-emerald-500'
-                          }`}
+                          className="w-7 h-7 rounded-lg bg-brand-bg-inner/80 hover:bg-emerald-500/15 border border-brand-border text-brand-text-muted hover:text-emerald-500 transition-all flex items-center justify-center cursor-pointer"
                         >
                           <CheckCircle2 className="w-3 h-3" />
                         </button>
